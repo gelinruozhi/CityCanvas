@@ -1,0 +1,83 @@
+// SQLite for local dev. Switch to Postgres for production:
+// provider = "postgresql"
+// url = env("DATABASE_URL")
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nickname  String
+  avatar    String?
+  createdAt DateTime @default(now())
+
+  creations Creation[]
+  comments  Comment[]
+  likes     Like[]
+}
+
+model Creation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  mapView   String   // JSON string: { center: [lng, lat], zoom: number }
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  annotations Annotation[]
+  comments    Comment[]
+  likes       Like[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Annotation {
+  id           String   @id @default(cuid())
+  creationId   String
+  lat          Float
+  lng          Float
+  title        String
+  content      String
+  buildingType String   // dining | leisure | study | sports | green | other
+  aiScore      String?  // JSON string: { comfortScore, convenienceScore, overallScore, rating, summary, strengths[], concerns[], suggestions[], vibeTags[] }
+  createdAt    DateTime @default(now())
+
+  creation Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
+
+  @@index([creationId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  creationId String
+  userId     String
+  content    String
+  createdAt  DateTime @default(now())
+
+  creation Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([creationId])
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  creationId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  creation Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([creationId, userId])
+  @@index([creationId])
+}
