@@ -101,7 +101,9 @@ export function CreateAnnotationDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && closeCreateDialog()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent
+        className="left-auto right-4 top-1/2 max-h-[92vh] max-w-md translate-x-0 -translate-y-1/2 overflow-y-auto sm:right-6"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-orange-400" />
