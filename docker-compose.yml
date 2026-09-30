@@ -3,26 +3,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_AMAP_KEY: ${NEXT_PUBLIC_AMAP_KEY:-}
+        NEXT_PUBLIC_AMAP_SECURITY_CODE: ${NEXT_PUBLIC_AMAP_SECURITY_CODE:-}
     container_name: citycanvas-app
     restart: unless-stopped
     environment:
       NODE_ENV: production
       DATABASE_URL: file:/app/data/prod.db
-      NEXT_PUBLIC_AMAP_KEY: ${NEXT_PUBLIC_AMAP_KEY}
-      NEXT_PUBLIC_AMAP_SECURITY_CODE: ${NEXT_PUBLIC_AMAP_SECURITY_CODE}
       AMAP_REST_KEY: ${AMAP_REST_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL}
+      ANTHROPIC_MODELS: ${ANTHROPIC_MODELS:-}
     volumes:
       - citycanvas-data:/app/data
     expose:
       - "3000"
     networks:
       - citycanvas-net
-    # 容器启动前自动 push prisma schema（首次启动建表）
+    # 首次启动自动建表（幂等），失败立即退出便于日志排查，由 restart 拉起重试
     command: >
       sh -c "
-      pnpm prisma db push --schema=./prisma/schema.prisma --accept-data-loss=false 2>/dev/null || npx prisma db push --schema=./prisma/schema.prisma 2>/dev/null || true;
+      prisma db push --schema=./prisma/schema.prisma --skip-generate &&
       node server.js
       "
 

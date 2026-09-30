@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, animate } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Sparkles, Heart, MessageCircle, Pencil } from "lucide-react";
 
@@ -22,6 +22,8 @@ const FALLBACK: Stats = {
 };
 
 export function StatsBar() {
+  // 不能用 initialData=FALLBACK：会让 query 在 staleTime 内视为新鲜数据，
+  // 导致统计永远显示 0；未加载时在渲染层兜底
   const { data } = useQuery<Stats>({
     queryKey: ["stats"],
     queryFn: async () => {
@@ -29,17 +31,18 @@ export function StatsBar() {
       const json = await res.json();
       return json.data as Stats;
     },
-    initialData: FALLBACK,
     refetchOnWindowFocus: false,
     staleTime: 60_000,
   });
 
+  const stats = data ?? FALLBACK;
+
   const items = [
-    { icon: Pencil, label: "作品", value: data.creations, color: "text-orange-400" },
-    { icon: MapPin, label: "标点", value: data.annotations, color: "text-rose-400" },
-    { icon: Sparkles, label: "AI 评估", value: data.evaluated, color: "text-amber-400" },
-    { icon: Heart, label: "点赞", value: data.likes, color: "text-pink-400" },
-    { icon: MessageCircle, label: "评论", value: data.comments, color: "text-sky-400" },
+    { icon: Pencil, label: "作品", value: stats.creations, color: "text-orange-400" },
+    { icon: MapPin, label: "标点", value: stats.annotations, color: "text-rose-400" },
+    { icon: Sparkles, label: "AI 评估", value: stats.evaluated, color: "text-amber-400" },
+    { icon: Heart, label: "点赞", value: stats.likes, color: "text-pink-400" },
+    { icon: MessageCircle, label: "评论", value: stats.comments, color: "text-sky-400" },
   ];
 
   return (
@@ -70,22 +73,18 @@ export function StatsBar() {
 }
 
 function Counter({ to, delay }: { to: number; delay: number }) {
-  const motionValue = useMotionValue(0);
-  const rounded = useTransform(motionValue, (v) => Math.round(v));
-  const [display, setDisplay] = useState(0);
+  const [display, setDisplay] = useState(to);
 
   useEffect(() => {
-    const ctrl = animate(motionValue, to, {
-      duration: 1.4,
+    // 用值驱动的 animate + onUpdate：MotionValue 派生值订阅在生产构建下不可靠
+    const ctrl = animate(0, to, {
+      duration: 1.2,
       delay,
       ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setDisplay(Math.round(v)),
     });
-    const unsub = rounded.on("change", setDisplay);
-    return () => {
-      ctrl.stop();
-      unsub();
-    };
-  }, [to, delay, motionValue, rounded]);
+    return () => ctrl.stop();
+  }, [to, delay]);
 
   return <>{display}</>;
 }

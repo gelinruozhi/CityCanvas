@@ -55,6 +55,12 @@ const bodySchema = z.object({
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json(
+      { error: "服务端未配置 ANTHROPIC_API_KEY" },
+      { status: 503 }
+    );
+  }
   try {
     const json = await req.json();
     const parsed = bodySchema.safeParse(json);

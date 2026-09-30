@@ -38,6 +38,8 @@ cp .env.example .env.local
 #   AMAP_REST_KEY                   高德 Web 服务 Key（POI 搜索）
 #   ANTHROPIC_API_KEY               Claude API Key
 #   ANTHROPIC_BASE_URL              API 地址（官方 / 代理）
+#   ANTHROPIC_MODELS                可选：模型回退链（逗号分隔，代理网关按 token 绑定模型组时用）
+#   NEXT_PUBLIC_SITE_URL            可选：站点地址（OG 分享卡用）
 
 # 3. 初始化数据库
 pnpm prisma generate

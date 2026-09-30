@@ -93,17 +93,23 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const sort = url.searchParams.get("sort") ?? "latest";
-    const take = Math.min(parseInt(url.searchParams.get("limit") ?? "30", 10), 60);
+    const take = Math.min(
+      parseInt(url.searchParams.get("limit") ?? "30", 10) || 30,
+      60
+    );
+    const cursor = url.searchParams.get("cursor");
 
+    // 加 id 兜底排序，保证 cursor 分页顺序稳定
     const orderBy =
       sort === "hot"
-        ? { likes: { _count: "desc" as const } }
-        : { createdAt: "desc" as const };
+        ? [{ likes: { _count: "desc" as const } }, { id: "desc" as const }]
+        : [{ createdAt: "desc" as const }, { id: "desc" as const }];
 
     const creations = await prisma.creation.findMany({
       where: { isPublic: true },
       orderBy,
       take,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         user: true,
         annotations: true,
@@ -111,7 +117,20 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json({ data: creations });
+    return NextResponse.json(
+      {
+        data: creations,
+        nextCursor:
+          creations.length === take
+            ? creations[creations.length - 1].id
+            : null,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+        },
+      }
+    );
   } catch (err) {
     console.error("GET /api/creations 失败:", err);
     return NextResponse.json({ error: "服务器错误" }, { status: 500 });

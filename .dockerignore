@@ -7,6 +7,8 @@ node_modules
 Dockerfile
 docker-compose.yml
 .dockerignore
+# 密钥不进构建上下文：NEXT_PUBLIC_* 经 build args 注入，其余运行时由 compose 注入
+.env
 .env*.local
 prisma/dev.db
 prisma/dev.db-journal

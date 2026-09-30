@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import AMapLoader from "@amap/amap-jsapi-loader";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
 import { DEFAULT_MAP_VIEW, AMAP_DARK_STYLE, AMAP_LIGHT_STYLE } from "@/lib/constants";
@@ -45,6 +45,11 @@ export function CanvasMap() {
   const mapRef = useRef<AMapInstance | null>(null);
   const aMapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, AMapMarker>>(new Map());
+  // 记录每个 marker 上次渲染的 content/位置，避免输入时全量重建 marker DOM
+  const markerMetaRef = useRef<Map<string, { content: string; pos: string }>>(
+    new Map()
+  );
+  const [mapReady, setMapReady] = useState(false);
 
   const annotations = useAnnotationStore((s) => s.annotations);
   const selectedId = useAnnotationStore((s) => s.selectedId);
@@ -124,6 +129,7 @@ export function CanvasMap() {
         });
 
         mapRef.current = map;
+        setMapReady(true);
       })
       .catch((err) => {
         console.error("高德地图加载失败：", err);
@@ -134,6 +140,7 @@ export function CanvasMap() {
       mapRef.current?.destroy?.();
       mapRef.current = null;
       markersRef.current.clear();
+      markerMetaRef.current.clear();
     };
   }, [openCreateDialog, setCampusCenter]);
 
@@ -145,7 +152,7 @@ export function CanvasMap() {
   useEffect(() => {
     const AMap = aMapRef.current;
     const map = mapRef.current;
-    if (!AMap || !map) return;
+    if (!AMap || !map || !mapReady) return;
 
     const existing = markersRef.current;
     const seen = new Set<string>();
@@ -154,6 +161,7 @@ export function CanvasMap() {
       seen.add(annotation.id);
       const isSelected = annotation.id === selectedId;
       const content = buildMarkerContent(annotation, isSelected);
+      const pos = `${annotation.lng},${annotation.lat}`;
 
       let marker = existing.get(annotation.id);
       if (!marker) {
@@ -168,10 +176,15 @@ export function CanvasMap() {
         marker.on("click", () => selectAnnotation(annotation.id));
         map.add(marker);
         existing.set(annotation.id, marker);
+        markerMetaRef.current.set(annotation.id, { content, pos });
       } else {
-        marker.setContent(content);
-        marker.setPosition([annotation.lng, annotation.lat]);
-        marker.setzIndex?.(isSelected ? 200 : 100);
+        const meta = markerMetaRef.current.get(annotation.id);
+        if (!meta || meta.content !== content || meta.pos !== pos) {
+          marker.setContent(content);
+          marker.setPosition([annotation.lng, annotation.lat]);
+          marker.setzIndex?.(isSelected ? 200 : 100);
+          markerMetaRef.current.set(annotation.id, { content, pos });
+        }
       }
     });
 
@@ -179,9 +192,10 @@ export function CanvasMap() {
       if (!seen.has(id)) {
         map.remove(marker);
         existing.delete(id);
+        markerMetaRef.current.delete(id);
       }
     });
-  }, [annotations, selectedId, selectAnnotation]);
+  }, [annotations, selectedId, selectAnnotation, mapReady]);
 
   useEffect(() => {
     if (!mapRef.current || !selectedId) return;

@@ -1,0 +1,1 @@
+# 供 Dockerfile 的 COPY /app/public 指令使用；静态资源放这里

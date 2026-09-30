@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const bodySchema = z.object({
@@ -28,7 +29,16 @@ export async function POST(
       await prisma.like.delete({ where: { id: existing.id } });
       liked = false;
     } else {
-      await prisma.like.create({ data: { creationId: id, userId } });
+      try {
+        await prisma.like.create({ data: { creationId: id, userId } });
+      } catch (e) {
+        // 并发双击触发唯一约束冲突：视为已点赞，幂等返回
+        if (
+          !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")
+        ) {
+          throw e;
+        }
+      }
       liked = true;
     }
 

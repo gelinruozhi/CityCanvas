@@ -27,11 +27,7 @@ export async function GET() {
     );
   } catch (err) {
     console.error("GET /api/stats 失败:", err);
-    return NextResponse.json(
-      {
-        data: { creations: 0, annotations: 0, comments: 0, likes: 0, evaluated: 0 },
-      },
-      { status: 200 }
-    );
+    // 不返回假 0 数据掩盖故障，让前端 react-query 走重试/错误态
+    return NextResponse.json({ error: "服务器错误" }, { status: 500 });
   }
 }

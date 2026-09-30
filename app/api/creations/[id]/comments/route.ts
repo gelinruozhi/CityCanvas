@@ -24,6 +24,13 @@ export async function POST(
       return NextResponse.json({ error: "作品不存在" }, { status: 404 });
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: parsed.data.userId },
+    });
+    if (!user) {
+      return NextResponse.json({ error: "用户不存在" }, { status: 404 });
+    }
+
     const comment = await prisma.comment.create({
       data: {
         creationId: id,

@@ -7,7 +7,6 @@ import { CreationDetailMap } from "@/components/gallery/creation-detail-map";
 import { LikeButton } from "@/components/gallery/like-button";
 import { CommentSection } from "@/components/gallery/comment-section";
 import { ForkButton } from "@/components/gallery/fork-button";
-import { AnonymousUserInit } from "@/components/anonymous-user-init";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -25,6 +24,7 @@ export default async function CreationDetailPage({ params }: PageProps) {
       comments: {
         include: { user: true },
         orderBy: { createdAt: "desc" },
+        take: 100,
       },
       _count: { select: { likes: true, comments: true } },
     },
@@ -49,8 +49,6 @@ export default async function CreationDetailPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-white">
-      <AnonymousUserInit />
-
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-orange-500/8 blur-[140px]" />
       </div>

@@ -13,11 +13,20 @@ interface EvaluatePayload {
 }
 
 async function postEvaluate(payload: EvaluatePayload): Promise<AIScore> {
-  const res = await fetch("/api/evaluate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/evaluate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(90_000),
+    });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "TimeoutError") {
+      throw new Error("评估超时（90 秒），请稍后重试");
+    }
+    throw e;
+  }
   const json = await res.json();
   if (!res.ok) throw new Error(json?.detail ?? json?.error ?? "评估失败");
   return json.data as AIScore;
