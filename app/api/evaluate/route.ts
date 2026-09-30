@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { hasApiKey } from "@/lib/ai/anthropic";
 import { evaluateAnnotation } from "@/lib/ai/evaluator";
 
 const BUILDING_TYPE_VALUES = [
@@ -55,9 +56,9 @@ const bodySchema = z.object({
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!hasApiKey) {
     return NextResponse.json(
-      { error: "服务端未配置 ANTHROPIC_API_KEY" },
+      { error: "服务端未配置 AI_GATEWAY_API_KEY" },
       { status: 503 }
     );
   }

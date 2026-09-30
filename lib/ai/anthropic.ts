@@ -13,6 +13,8 @@ const styleRaw =
   process.env.AI_GATEWAY_API_STYLE ?? process.env.ANTHROPIC_API_STYLE;
 const modelsRaw = process.env.AI_GATEWAY_MODELS ?? process.env.ANTHROPIC_MODELS;
 
+export const hasApiKey = Boolean(apiKey);
+
 export const anthropic = new Anthropic({
   apiKey: apiKey ?? "missing",
   baseURL,
