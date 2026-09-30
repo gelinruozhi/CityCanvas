@@ -36,9 +36,10 @@ cp .env.example .env.local
 #   NEXT_PUBLIC_AMAP_KEY            高德 Web 端 JS API Key
 #   NEXT_PUBLIC_AMAP_SECURITY_CODE  对应安全密钥
 #   AMAP_REST_KEY                   高德 Web 服务 Key（POI 搜索）
-#   ANTHROPIC_API_KEY               Claude API Key
-#   ANTHROPIC_BASE_URL              API 地址（官方 / 代理）
-#   ANTHROPIC_MODELS                可选：模型回退链（逗号分隔，代理网关按 token 绑定模型组时用）
+#   AI_GATEWAY_API_KEY              AI 网关 API Key
+#   AI_GATEWAY_BASE_URL             AI 网关地址（anthropic 风格到域名级；openai 风格到 /compatible-mode/v1）
+#   AI_GATEWAY_API_STYLE            anthropic（默认）| openai（网关仅提供 OpenAI 兼容接口时）
+#   AI_GATEWAY_MODELS               可选：模型回退链（逗号分隔，代理网关按 token 绑定模型组时用）
 #   NEXT_PUBLIC_SITE_URL            可选：站点地址（OG 分享卡用）
 
 # 3. 初始化数据库

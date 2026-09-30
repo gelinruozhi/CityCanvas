@@ -12,9 +12,10 @@ services:
       NODE_ENV: production
       DATABASE_URL: file:/app/data/prod.db
       AMAP_REST_KEY: ${AMAP_REST_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL}
-      ANTHROPIC_MODELS: ${ANTHROPIC_MODELS:-}
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY}
+      AI_GATEWAY_BASE_URL: ${AI_GATEWAY_BASE_URL}
+      AI_GATEWAY_API_STYLE: ${AI_GATEWAY_API_STYLE:-anthropic}
+      AI_GATEWAY_MODELS: ${AI_GATEWAY_MODELS:-}
     volumes:
       - citycanvas-data:/app/data
     expose:

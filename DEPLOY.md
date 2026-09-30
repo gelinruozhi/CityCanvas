@@ -62,23 +62,29 @@ nano .env
 ```ini
 NEXT_PUBLIC_AMAP_KEY=<你的高德 Web 端 Key>
 NEXT_PUBLIC_AMAP_SECURITY_CODE=<对应的安全密钥>
-AMAP_REST_KEY=<高德 Web 服务 Key>
+AMAP_REST_KEY=<你的高德 Web 服务 Key>
 
-ANTHROPIC_API_KEY=<你的 Claude API Key>
-ANTHROPIC_BASE_URL=https://api.anthropic.com  # 或代理地址
+AI_GATEWAY_API_KEY=<你的 AI 网关 Key>
+# anthropic 风格填到域名级（默认官方地址）；openai 风格填到 /compatible-mode/v1 这一级
+AI_GATEWAY_BASE_URL=https://api.anthropic.com
+# API 风格：anthropic（默认）| openai（网关仅提供 OpenAI 兼容 /chat/completions 时）
+AI_GATEWAY_API_STYLE=anthropic
 
 # 可选：模型回退链（逗号分隔）。代理网关通常按 token 绑定可用模型组，
 # 报 "model does not exist / Access denied / Free quota exhausted" 时在此调整，无需改代码
-ANTHROPIC_MODELS=claude-sonnet-4-6,claude-3-5-sonnet-20241022
+AI_GATEWAY_MODELS=claude-sonnet-4-6,claude-3-5-sonnet-20241022
 
 # 可选：站点地址（OG/分享卡用），生产填真实域名
 NEXT_PUBLIC_SITE_URL=https://your-domain.com
 ```
 
+> 变量名刻意用 `AI_GATEWAY_*` 而不是 `ANTHROPIC_*`：后者常被机器上其他工具的
+> 全局环境变量占用（Windows 用户级变量优先级高于 .env 文件，会污染本应用）。
+
 > ⚠️ **`NEXT_PUBLIC_*` 变量在镜像构建期内联进浏览器 bundle**：docker-compose 会把
 > `.env` 里的 `NEXT_PUBLIC_AMAP_KEY` / `NEXT_PUBLIC_AMAP_SECURITY_CODE` 作为 build args
 > 传给 `docker compose build`。改动这几个值后必须**重新 build 镜像**才生效；
-> 其余变量（`ANTHROPIC_API_KEY` 等）是运行时注入，改完 `docker compose up -d` 重启即可。
+> 其余变量（`AI_GATEWAY_API_KEY` 等）是运行时注入，改完 `docker compose up -d` 重启即可。
 
 ---
 
@@ -235,8 +241,8 @@ docker compose exec app pnpm prisma studio  # 看数据库
 |---|---|
 | 浏览器 502 Bad Gateway | `docker compose logs app` 看 Next.js 是否起来；容器反复重启多半是 `prisma db push` 失败，日志里有真实原因 |
 | 地图不渲染 | 浏览器 F12 Console 看高德 Key 错误（USERKEY_PLAT_NOMATCH 等） |
-| AI 评估报 model does not exist / Access denied / Free quota exhausted | 网关按 token 绑定模型组：调 `.env` 的 `ANTHROPIC_MODELS` 换可用模型；报 Free quota exhausted 需到网关控制台充值或关闭"仅免费模式" |
-| AI 评估超时 | 检查 ANTHROPIC_BASE_URL 是否能访问；服务端单模型 30s 超时、客户端 90s 超时、nginx 120s 兜底 |
+| AI 评估报 model does not exist / Access denied / Free quota exhausted | 网关按 token 绑定模型组：调 `.env` 的 `AI_GATEWAY_MODELS` 换可用模型；报 Free quota exhausted 需到网关控制台充值或关闭"仅免费模式" |
+| AI 评估超时 | 检查 AI_GATEWAY_BASE_URL 是否能访问；服务端单模型 30s 超时、客户端 90s 超时、nginx 120s 兜底 |
 | 评论/点赞失败 | `docker compose exec app sqlite3 /app/data/prod.db ".tables"` 检查表 |
 | 端口被占 | `sudo lsof -i:80` 找占用进程；或改 docker-compose 端口映射 |
 

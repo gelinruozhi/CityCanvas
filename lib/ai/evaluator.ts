@@ -1,4 +1,4 @@
-import { anthropic, MODEL_CHAIN } from "./anthropic";
+import { anthropic, API_STYLE, openaiChatComplete, MODEL_CHAIN } from "./anthropic";
 import { ANNOTATION_EVALUATOR_SYSTEM_PROMPT, buildEvaluatorUserPrompt } from "./prompts";
 import { searchNearbyPois } from "@/lib/amap/poi";
 import type { AIScore, Annotation, BuildingType } from "@/lib/types";
@@ -136,6 +136,10 @@ async function callClaudeWithFallback(
   let lastErr: unknown;
   for (const model of modelChain) {
     try {
+      if (API_STYLE === "openai") {
+        // 推理模型会先消耗 token 思考，max_tokens 放大到 3 倍保证正文有空间
+        return await openaiChatComplete(systemPrompt, userPrompt, model, 3072);
+      }
       const response = await anthropic.messages.create({
         model,
         max_tokens: 1024,
