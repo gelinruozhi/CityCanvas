@@ -45,6 +45,7 @@ export function CanvasMap() {
   const mapRef = useRef<AMapInstance | null>(null);
   const aMapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, AMapMarker>>(new Map());
+  const satelliteLayersRef = useRef<{ sat: any; road: any } | null>(null);
   // 记录每个 marker 上次渲染的 content/位置，避免输入时全量重建 marker DOM
   const markerMetaRef = useRef<Map<string, { content: string; pos: string }>>(
     new Map()
@@ -54,6 +55,7 @@ export function CanvasMap() {
   const annotations = useAnnotationStore((s) => s.annotations);
   const selectedId = useAnnotationStore((s) => s.selectedId);
   const isDarkMap = useAnnotationStore((s) => s.isDarkMap);
+  const isSatellite = useAnnotationStore((s) => s.isSatellite);
   const openCreateDialog = useAnnotationStore((s) => s.openCreateDialog);
   const selectAnnotation = useAnnotationStore((s) => s.selectAnnotation);
   const setCampusCenter = useAnnotationStore((s) => s.setCampusCenter);
@@ -106,7 +108,8 @@ export function CanvasMap() {
           if (status === "complete" && result?.poiList?.pois?.length > 0) {
             const poi = result.poiList.pois[0];
             const center: [number, number] = [poi.location.lng, poi.location.lat];
-            map.setZoomAndCenter(16, center);
+            // zoom 17 能看清单体建筑与道路，16 的全校缩略图太远没有代入感
+            map.setZoomAndCenter(17, center);
             setCampusCenter({ lng: center[0], lat: center[1] });
           } else {
             // 兜底再搜一次
@@ -115,7 +118,7 @@ export function CanvasMap() {
                 const poi = r.poiList.pois[0];
                 const lng = poi.location.lng;
                 const lat = poi.location.lat;
-                map.setZoomAndCenter(16, [lng, lat]);
+                map.setZoomAndCenter(17, [lng, lat]);
                 setCampusCenter({ lng, lat });
               }
             });
@@ -126,9 +129,20 @@ export function CanvasMap() {
           const lng = e.lnglat.getLng();
           const lat = e.lnglat.getLat();
           openCreateDialog(lng, lat);
+          // 点击创作时拉近到能看清脚下建筑细节，同时不丢失方位感
+          if (map.getZoom() < 17.5) {
+            map.setZoomAndCenter(17.5, [lng, lat], false, 600);
+          }
         });
 
         mapRef.current = map;
+
+        // 卫星影像 + 路网叠加图层（按 isSatellite 状态挂载/卸载）
+        satelliteLayersRef.current = {
+          sat: new AMap.TileLayer.Satellite({ zIndex: 5 }),
+          road: new AMap.TileLayer.RoadNet({ zIndex: 6 }),
+        };
+
         setMapReady(true);
       })
       .catch((err) => {
@@ -148,6 +162,18 @@ export function CanvasMap() {
     if (!mapRef.current) return;
     mapRef.current.setMapStyle(isDarkMap ? AMAP_DARK_STYLE : AMAP_LIGHT_STYLE);
   }, [isDarkMap]);
+
+  // 卫星图层挂载/卸载（依赖 mapReady：图层实例在地图初始化后创建）
+  useEffect(() => {
+    const map = mapRef.current;
+    const layers = satelliteLayersRef.current;
+    if (!map || !layers || !mapReady) return;
+    if (isSatellite) {
+      map.add([layers.sat, layers.road]);
+    } else {
+      map.remove([layers.sat, layers.road]);
+    }
+  }, [isSatellite, mapReady]);
 
   useEffect(() => {
     const AMap = aMapRef.current;
@@ -201,7 +227,9 @@ export function CanvasMap() {
     if (!mapRef.current || !selectedId) return;
     const target = annotations.find((a) => a.id === selectedId);
     if (target) {
-      mapRef.current.setCenter([target.lng, target.lat], false, 500);
+      // 选中标点时拉近，让用户清楚看到标点与周边建筑的关系
+      const zoom = Math.max(mapRef.current.getZoom?.() ?? 0, 17.5);
+      mapRef.current.setZoomAndCenter(zoom, [target.lng, target.lat], false, 500);
     }
   }, [selectedId, annotations]);
 

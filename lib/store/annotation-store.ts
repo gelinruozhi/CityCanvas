@@ -7,6 +7,7 @@ interface AnnotationStore {
   annotations: Annotation[];
   selectedId: string | null;
   isDarkMap: boolean;
+  isSatellite: boolean;
   pendingPosition: { lng: number; lat: number } | null;
   isPublishOpen: boolean;
   campusCenter: { lng: number; lat: number } | null;
@@ -22,6 +23,7 @@ interface AnnotationStore {
   clearAll: () => void;
   selectAnnotation: (id: string | null) => void;
   toggleMapTheme: () => void;
+  toggleSatellite: () => void;
 
   openCreateDialog: (lng: number, lat: number) => void;
   closeCreateDialog: () => void;
@@ -53,7 +55,8 @@ function pushHistory(state: AnnotationStore): Pick<AnnotationStore, "past" | "fu
 export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   annotations: [],
   selectedId: null,
-  isDarkMap: false,
+  isDarkMap: true,
+  isSatellite: false,
   pendingPosition: null,
   isPublishOpen: false,
   campusCenter: null,
@@ -106,6 +109,8 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   selectAnnotation: (id) => set({ selectedId: id }),
 
   toggleMapTheme: () => set((s) => ({ isDarkMap: !s.isDarkMap })),
+
+  toggleSatellite: () => set((s) => ({ isSatellite: !s.isSatellite })),
 
   openCreateDialog: (lng, lat) => set({ pendingPosition: { lng, lat } }),
   closeCreateDialog: () => set({ pendingPosition: null }),

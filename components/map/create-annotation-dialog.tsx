@@ -2,9 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Sparkles, Loader2, Hammer, Wand2 } from "lucide-react";
+import {
+  MapPin,
+  Sparkles,
+  Loader2,
+  Hammer,
+  Wand2,
+  Navigation,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
+import { searchNearbyPlaces, type NearbyPlace } from "@/lib/amap/place-search-client";
 import {
   BUILDING_TYPES,
   BUILDING_GROUPS,
@@ -42,14 +50,25 @@ export function CreateAnnotationDialog() {
   const [buildingType, setBuildingType] = useState<BuildingType>("other");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // 打开对话框时反查周边真实建筑，让用户知道"我在哪"
+  const [nearby, setNearby] = useState<NearbyPlace[] | null>(null);
 
   useEffect(() => {
-    if (pendingPosition) {
-      setTitle("");
-      setIntent("build");
-      setBuildingType("other");
-      setContent("");
-    }
+    if (!pendingPosition) return;
+    setTitle("");
+    setIntent("build");
+    setBuildingType("other");
+    setContent("");
+    setNearby(null);
+    let cancelled = false;
+    searchNearbyPlaces(pendingPosition.lng, pendingPosition.lat, 250).then(
+      (places) => {
+        if (!cancelled) setNearby(places);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
   }, [pendingPosition]);
 
   const open = Boolean(pendingPosition);
@@ -94,11 +113,43 @@ export function CreateAnnotationDialog() {
         </DialogHeader>
 
         {pendingPosition && (
-          <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-2 text-xs">
-            <MapPin className="h-3.5 w-3.5 text-orange-400" />
-            <span className="font-mono text-zinc-300">
-              {pendingPosition.lng.toFixed(6)}, {pendingPosition.lat.toFixed(6)}
-            </span>
+          <div className="rounded-xl border border-orange-500/20 bg-gradient-to-br from-orange-500/[0.08] to-transparent px-3.5 py-2.5">
+            <div className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
+              <div className="min-w-0 flex-1">
+                {nearby === null ? (
+                  <span className="flex items-center gap-2 text-xs text-zinc-400">
+                    正在识别周边建筑
+                    <Loader2 className="h-3 w-3 animate-spin text-orange-400" />
+                  </span>
+                ) : nearby.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <span className="flex items-center gap-1 font-medium text-orange-200">
+                      <Navigation className="h-3 w-3" />
+                      {nearby[0].name}
+                      <span className="font-normal text-zinc-500">
+                        · 约{nearby[0].distance}m
+                      </span>
+                    </span>
+                    {nearby.slice(1, 3).map((p) => (
+                      <span key={p.name} className="text-zinc-400">
+                        {p.name}
+                        <span className="ml-0.5 text-zinc-600">
+                          · {p.distance}m
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-xs text-zinc-500">
+                    周边是开阔区域，没有标志性建筑 · AI 会按中性环境评分
+                  </span>
+                )}
+                <div className="mt-1 font-mono text-[10px] text-zinc-600">
+                  {pendingPosition.lng.toFixed(5)}, {pendingPosition.lat.toFixed(5)}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

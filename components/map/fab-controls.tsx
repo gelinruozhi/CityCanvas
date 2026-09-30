@@ -1,7 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trash2, Rocket, Sun, Moon, Home, Undo2, Redo2 } from "lucide-react";
+import {
+  Trash2,
+  Rocket,
+  Sun,
+  Moon,
+  Home,
+  Undo2,
+  Redo2,
+  Satellite,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
@@ -15,12 +24,14 @@ import {
 export function FabControls() {
   const annotations = useAnnotationStore((s) => s.annotations);
   const isDarkMap = useAnnotationStore((s) => s.isDarkMap);
+  const isSatellite = useAnnotationStore((s) => s.isSatellite);
   const past = useAnnotationStore((s) => s.past);
   const future = useAnnotationStore((s) => s.future);
   const undo = useAnnotationStore((s) => s.undo);
   const redo = useAnnotationStore((s) => s.redo);
   const clearAll = useAnnotationStore((s) => s.clearAll);
   const toggleMapTheme = useAnnotationStore((s) => s.toggleMapTheme);
+  const toggleSatellite = useAnnotationStore((s) => s.toggleSatellite);
   const openPublishDialog = useAnnotationStore((s) => s.openPublishDialog);
 
   const handleClear = () => {
@@ -59,6 +70,14 @@ export function FabControls() {
           onClick={toggleMapTheme}
         >
           {isDarkMap ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </FabButton>
+
+        <FabButton
+          tooltip={isSatellite ? "切换矢量地图" : "切换卫星实景地图"}
+          onClick={toggleSatellite}
+          active={isSatellite}
+        >
+          <Satellite className="h-5 w-5" />
         </FabButton>
 
         <FabButton
@@ -115,6 +134,7 @@ function FabButton({
   tooltip,
   onClick,
   primary,
+  active,
   asChild,
   disabled,
 }: {
@@ -122,15 +142,18 @@ function FabButton({
   tooltip: string;
   onClick?: () => void;
   primary?: boolean;
+  active?: boolean;
   asChild?: boolean;
   disabled?: boolean;
 }) {
-  const className = `grid h-12 w-12 place-items-center rounded-full border border-white/10 transition-all ${
+  const className = `grid h-12 w-12 place-items-center rounded-full border transition-all ${
     disabled
-      ? "cursor-not-allowed bg-zinc-950/40 text-zinc-600 opacity-50"
+      ? "cursor-not-allowed border-white/10 bg-zinc-950/40 text-zinc-600 opacity-50"
       : primary
-      ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/40 hover:scale-110 hover:shadow-xl hover:shadow-orange-500/50 active:scale-95"
-      : "bg-zinc-950/70 text-zinc-200 backdrop-blur-xl hover:scale-110 hover:bg-zinc-900 active:scale-95"
+      ? "border-transparent bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/40 hover:scale-110 hover:shadow-xl hover:shadow-orange-500/50 active:scale-95"
+      : active
+      ? "border-orange-500/50 bg-orange-500/15 text-orange-300 backdrop-blur-xl hover:scale-110 active:scale-95"
+      : "border-white/10 bg-zinc-950/70 text-zinc-200 backdrop-blur-xl hover:scale-110 hover:bg-zinc-900 active:scale-95"
   }`;
 
   return (
