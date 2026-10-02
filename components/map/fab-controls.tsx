@@ -10,6 +10,10 @@ import {
   Undo2,
   Redo2,
   Satellite,
+  MapPin,
+  Circle,
+  Square,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -25,6 +29,10 @@ export function FabControls() {
   const annotations = useAnnotationStore((s) => s.annotations);
   const isDarkMap = useAnnotationStore((s) => s.isDarkMap);
   const isSatellite = useAnnotationStore((s) => s.isSatellite);
+  const drawTool = useAnnotationStore((s) => s.drawTool);
+  const setDrawTool = useAnnotationStore((s) => s.setDrawTool);
+  const selectedBuilding = useAnnotationStore((s) => s.selectedBuilding);
+  const indoorFloor = useAnnotationStore((s) => s.indoorFloor);
   const past = useAnnotationStore((s) => s.past);
   const future = useAnnotationStore((s) => s.future);
   const undo = useAnnotationStore((s) => s.undo);
@@ -33,6 +41,8 @@ export function FabControls() {
   const toggleMapTheme = useAnnotationStore((s) => s.toggleMapTheme);
   const toggleSatellite = useAnnotationStore((s) => s.toggleSatellite);
   const openPublishDialog = useAnnotationStore((s) => s.openPublishDialog);
+
+  const drawing = drawTool !== "point";
 
   const handleClear = () => {
     if (annotations.length === 0) {
@@ -53,6 +63,47 @@ export function FabControls() {
 
   return (
     <TooltipProvider delayDuration={150}>
+      {/* 绘图工具条：点 / 圆形区域 / 矩形区域（绘制模式激活时高亮并显示退出按钮） */}
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 280, damping: 28, delay: 0.15 }}
+        className="pointer-events-auto absolute bottom-6 left-24 z-20 flex flex-col gap-2"
+      >
+        <div className="flex flex-col gap-2 rounded-full border border-white/10 bg-zinc-950/70 p-1.5 backdrop-blur-xl">
+          <ToolButton
+            label="点位标注"
+            active={drawTool === "point" && !drawing}
+            onClick={() => setDrawTool("point")}
+          >
+            <MapPin className="h-4 w-4" />
+          </ToolButton>
+          <ToolButton
+            label="圆形区域"
+            active={drawTool === "circle"}
+            onClick={() => setDrawTool("circle")}
+          >
+            <Circle className="h-4 w-4" />
+          </ToolButton>
+          <ToolButton
+            label="矩形区域"
+            active={drawTool === "rect"}
+            onClick={() => setDrawTool("rect")}
+          >
+            <Square className="h-4 w-4" />
+          </ToolButton>
+        </div>
+        {drawing && (
+          <button
+            onClick={() => setDrawTool("point")}
+            className="flex h-9 items-center gap-1.5 self-start rounded-full border border-orange-500/40 bg-orange-500/15 px-3 text-xs text-orange-300 backdrop-blur-xl transition hover:bg-orange-500/25"
+          >
+            <X className="h-3.5 w-3.5" />
+            退出绘制
+          </button>
+        )}
+      </motion.div>
+
       <motion.div
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -113,7 +164,7 @@ export function FabControls() {
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="pointer-events-auto absolute bottom-6 left-24 z-20 flex h-12 items-center gap-3 rounded-full border border-white/10 bg-zinc-950/70 px-5 backdrop-blur-xl"
+        className="pointer-events-auto absolute bottom-6 left-[168px] z-20 flex h-12 max-w-[46vw] items-center gap-3 rounded-full border border-white/10 bg-zinc-950/70 px-5 backdrop-blur-xl"
       >
         <div className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
         <span className="text-sm text-zinc-300">
@@ -121,11 +172,48 @@ export function FabControls() {
           <span className="font-semibold text-white">{annotations.length}</span>{" "}
           个标点
         </span>
-        <span className="hidden text-xs text-zinc-500 sm:inline">
-          · 点击地图任意位置 · 按 ? 看快捷键
+        <span className="hidden truncate text-xs text-zinc-500 sm:inline">
+          ·{" "}
+          {drawing
+            ? drawTool === "circle"
+              ? "在地图上点击圆心并拖拽画圆"
+              : "在地图上拖拽画出矩形区域"
+            : selectedBuilding
+            ? `已选中 ${selectedBuilding.name}${indoorFloor ? ` · ${indoorFloor}` : ""}`
+            : "点击地图任意位置 · 按 ? 看快捷键"}
         </span>
       </motion.div>
     </TooltipProvider>
+  );
+}
+
+function ToolButton({
+  children,
+  label,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          className={`grid h-9 w-9 place-items-center rounded-full transition-all ${
+            active
+              ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-500/50"
+              : "text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+          }`}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

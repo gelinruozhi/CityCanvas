@@ -6,7 +6,16 @@ import type { AIScore, Annotation } from "@/lib/types";
 import type { NearbyPlace } from "@/lib/amap/place-search-client";
 
 interface EvaluatePayload {
-  annotation: Pick<Annotation, "lat" | "lng" | "title" | "content" | "buildingType">;
+  annotation: Pick<
+    Annotation,
+    "lat" | "lng" | "title" | "content" | "buildingType"
+  > & {
+    shape?: Annotation["shape"];
+    radius?: number;
+    bounds?: Annotation["bounds"];
+    buildingName?: string;
+    floor?: string;
+  };
   siblings: Array<Pick<Annotation, "lat" | "lng" | "title" | "buildingType">>;
   campusCenter: { lng: number; lat: number } | null;
   nearbyPlaces: NearbyPlace[];
@@ -65,6 +74,11 @@ export function useEvaluateAnnotation() {
           title: target.title,
           content: target.content,
           buildingType: target.buildingType,
+          shape: target.shape,
+          radius: target.radius,
+          bounds: target.bounds,
+          buildingName: target.buildingName,
+          floor: target.floor,
         },
         siblings,
         campusCenter,

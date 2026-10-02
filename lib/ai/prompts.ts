@@ -92,6 +92,10 @@ interface EvaluatorInput {
     lat: number;
     lng: number;
     distanceFromCenter: number;
+    shape?: "point" | "circle" | "rect";
+    radius?: number;
+    buildingName?: string;
+    floor?: string;
   };
   nearbyAnnotations: Array<{
     title: string;
@@ -134,6 +138,7 @@ export function buildEvaluatorUserPrompt(input: EvaluatorInput): string {
 - 标题：${a.title}
 - 类型：${a.buildingType}
 - 描述：${a.content}
+- 覆盖范围：${a.shape === "circle" ? `半径 ${a.radius}m 的圆形区域` : a.shape === "rect" ? "矩形区域" : "单个点位"}${a.floor ? ` · 室内 ${a.buildingName ?? ""} ${a.floor}` : ""}
 - 距校园几何中心约 ${a.distanceFromCenter}m（这是参考数字，**不能用它推方位**）
 - 原始坐标：${a.lng.toFixed(6)}, ${a.lat.toFixed(6)}
 

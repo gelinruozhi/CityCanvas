@@ -34,6 +34,16 @@ const annotationSchema = z.object({
   title: z.string().min(1).max(60),
   content: z.string().min(1).max(800),
   buildingType: z.enum(BUILDING_TYPE_VALUES),
+  shape: z.enum(["point", "circle", "rect"]).default("point"),
+  radius: z.number().positive().max(2000).optional(),
+  bounds: z
+    .object({
+      sw: z.tuple([z.number(), z.number()]),
+      ne: z.tuple([z.number(), z.number()]),
+    })
+    .optional(),
+  buildingName: z.string().max(60).optional(),
+  floor: z.string().max(10).optional(),
 });
 
 const placeSchema = z.object({

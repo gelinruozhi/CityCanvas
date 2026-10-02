@@ -9,10 +9,14 @@ import {
   Hammer,
   Wand2,
   Navigation,
+  Circle,
+  Square,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
 import { searchNearbyPlaces, type NearbyPlace } from "@/lib/amap/place-search-client";
+import { SHAPE_META } from "@/lib/types";
 import {
   BUILDING_TYPES,
   BUILDING_GROUPS,
@@ -44,13 +48,15 @@ export function CreateAnnotationDialog() {
   const pendingPosition = useAnnotationStore((s) => s.pendingPosition);
   const closeCreateDialog = useAnnotationStore((s) => s.closeCreateDialog);
   const addAnnotation = useAnnotationStore((s) => s.addAnnotation);
+  const selectedBuilding = useAnnotationStore((s) => s.selectedBuilding);
+  const indoorFloor = useAnnotationStore((s) => s.indoorFloor);
 
   const [title, setTitle] = useState("");
   const [intent, setIntent] = useState<Intent>("build");
   const [buildingType, setBuildingType] = useState<BuildingType>("other");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // 打开对话框时反查周边真实建筑，让用户知道"我在哪"
+  // 打开对话框时反查周边真实建筑，让用户知道"我在哪"（室内模式跳过）
   const [nearby, setNearby] = useState<NearbyPlace[] | null>(null);
 
   useEffect(() => {
@@ -60,6 +66,7 @@ export function CreateAnnotationDialog() {
     setBuildingType("other");
     setContent("");
     setNearby(null);
+    if (indoorFloor) return; // 室内：定位上下文用建筑名，不需要周边 POI
     let cancelled = false;
     searchNearbyPlaces(pendingPosition.lng, pendingPosition.lat, 250).then(
       (places) => {
@@ -69,7 +76,7 @@ export function CreateAnnotationDialog() {
     return () => {
       cancelled = true;
     };
-  }, [pendingPosition]);
+  }, [pendingPosition, indoorFloor]);
 
   const open = Boolean(pendingPosition);
 
@@ -92,6 +99,12 @@ export function CreateAnnotationDialog() {
       title: title.trim(),
       content: prefixed,
       buildingType,
+      shape: pendingPosition.shape ?? "point",
+      radius: pendingPosition.radius,
+      bounds: pendingPosition.bounds,
+      // 室内标注：带上建筑与楼层
+      buildingName: indoorFloor && selectedBuilding ? selectedBuilding.name : undefined,
+      floor: indoorFloor ?? undefined,
     });
     setSubmitting(false);
     toast.success("标点已添加 ✨", {
@@ -116,42 +129,101 @@ export function CreateAnnotationDialog() {
 
         {pendingPosition && (
           <div className="rounded-xl border border-orange-500/20 bg-gradient-to-br from-orange-500/[0.08] to-transparent px-3.5 py-2.5">
-            <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
-              <div className="min-w-0 flex-1">
-                {nearby === null ? (
-                  <span className="flex items-center gap-2 text-xs text-zinc-400">
-                    正在识别周边建筑
-                    <Loader2 className="h-3 w-3 animate-spin text-orange-400" />
-                  </span>
-                ) : nearby.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <span className="flex items-center gap-1 font-medium text-orange-200">
-                      <Navigation className="h-3 w-3" />
-                      {nearby[0].name}
-                      <span className="font-normal text-zinc-500">
-                        · 约{nearby[0].distance}m
-                      </span>
-                    </span>
-                    {nearby.slice(1, 3).map((p) => (
-                      <span key={p.name} className="text-zinc-400">
-                        {p.name}
-                        <span className="ml-0.5 text-zinc-600">
-                          · {p.distance}m
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-xs text-zinc-500">
-                    周边是开阔区域，没有标志性建筑 · AI 会按中性环境评分
-                  </span>
-                )}
-                <div className="mt-1 font-mono text-[10px] text-zinc-600">
-                  {pendingPosition.lng.toFixed(5)}, {pendingPosition.lat.toFixed(5)}
-                </div>
+            {/* 室内模式上下文 */}
+            {indoorFloor && selectedBuilding ? (
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 shrink-0 text-orange-400" />
+                <span className="text-xs font-medium text-orange-200">
+                  {selectedBuilding.name} · {indoorFloor} 室内
+                </span>
+                <span className="text-[10px] text-zinc-500">
+                  创意将挂到该楼层，AI 按室内场景评估
+                </span>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* 形状上下文 */}
+                {(pendingPosition.shape === "circle" ||
+                  pendingPosition.shape === "rect") && (
+                  <div className="mb-1.5 flex items-center gap-2 text-xs">
+                    {pendingPosition.shape === "circle" ? (
+                      <Circle className="h-3.5 w-3.5 text-orange-400" />
+                    ) : (
+                      <Square className="h-3.5 w-3.5 text-orange-400" />
+                    )}
+                    <span className="font-medium text-orange-200">
+                      {SHAPE_META[pendingPosition.shape].label}
+                      {pendingPosition.radius
+                        ? ` · 半径 ${pendingPosition.radius}m`
+                        : ""}
+                    </span>
+                    <span className="text-zinc-500">
+                      覆盖约{" "}
+                      {pendingPosition.shape === "circle"
+                        ? Math.round(
+                            Math.PI *
+                              (pendingPosition.radius ?? 0) ** 2
+                          ).toLocaleString()
+                        : pendingPosition.bounds
+                        ? Math.round(
+                            Math.abs(
+                              (pendingPosition.bounds.ne[0] -
+                                pendingPosition.bounds.sw[0]) *
+                                111320 *
+                                Math.cos(
+                                  (pendingPosition.lat * Math.PI) / 180
+                                )
+                            ) *
+                              Math.abs(
+                                (pendingPosition.bounds.ne[1] -
+                                  pendingPosition.bounds.sw[1]) *
+                                  111320
+                              )
+                          ).toLocaleString()
+                        : 0}{" "}
+                      ㎡
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
+                  <div className="min-w-0 flex-1">
+                    {nearby === null ? (
+                      <span className="flex items-center gap-2 text-xs text-zinc-400">
+                        正在识别周边建筑
+                        <Loader2 className="h-3 w-3 animate-spin text-orange-400" />
+                      </span>
+                    ) : nearby.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="flex items-center gap-1 font-medium text-orange-200">
+                          <Navigation className="h-3 w-3" />
+                          {nearby[0].name}
+                          <span className="font-normal text-zinc-500">
+                            · 约{nearby[0].distance}m
+                          </span>
+                        </span>
+                        {nearby.slice(1, 3).map((p) => (
+                          <span key={p.name} className="text-zinc-400">
+                            {p.name}
+                            <span className="ml-0.5 text-zinc-600">
+                              · {p.distance}m
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-zinc-500">
+                        周边是开阔区域，没有标志性建筑 · AI 会按中性环境评分
+                      </span>
+                    )}
+                    <div className="mt-1 font-mono text-[10px] text-zinc-600">
+                      {pendingPosition.lng.toFixed(5)},{" "}
+                      {pendingPosition.lat.toFixed(5)}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 

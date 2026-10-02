@@ -1,16 +1,37 @@
 import { create } from "zustand";
-import type { Annotation, AIScore } from "@/lib/types";
+import type {
+  Annotation,
+  AIScore,
+  AnnotationShape,
+  ShapeBounds,
+  CampusBuilding,
+} from "@/lib/types";
 
 const HISTORY_LIMIT = 30;
+
+export interface PendingAnnotationShape {
+  lng: number;
+  lat: number;
+  shape: AnnotationShape;
+  radius?: number;
+  bounds?: ShapeBounds;
+}
 
 interface AnnotationStore {
   annotations: Annotation[];
   selectedId: string | null;
   isDarkMap: boolean;
   isSatellite: boolean;
-  pendingPosition: { lng: number; lat: number } | null;
+  /** 待创建标注（打开创作面板时） */
+  pendingPosition: PendingAnnotationShape | null;
+  /** 当前绘图工具：point 直接点击，circle/rect 进入拖拽绘制 */
+  drawTool: AnnotationShape;
   isPublishOpen: boolean;
   campusCenter: { lng: number; lat: number } | null;
+  /** 点选的可交互建筑（室外建筑模式） */
+  selectedBuilding: CampusBuilding | null;
+  /** 室内编辑楼层（选中建筑 + 选层后进入室内模式） */
+  indoorFloor: string | null;
 
   // Undo / redo
   past: Annotation[][];
@@ -25,8 +46,16 @@ interface AnnotationStore {
   toggleMapTheme: () => void;
   toggleSatellite: () => void;
 
-  openCreateDialog: (lng: number, lat: number) => void;
+  setDrawTool: (tool: AnnotationShape) => void;
+  openCreateDialog: (
+    lng: number,
+    lat: number,
+    extra?: { shape?: AnnotationShape; radius?: number; bounds?: ShapeBounds }
+  ) => void;
   closeCreateDialog: () => void;
+
+  selectBuilding: (building: CampusBuilding | null) => void;
+  setIndoorFloor: (floor: string | null) => void;
 
   openPublishDialog: () => void;
   closePublishDialog: () => void;
@@ -58,8 +87,11 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   isDarkMap: true,
   isSatellite: false,
   pendingPosition: null,
+  drawTool: "point",
   isPublishOpen: false,
   campusCenter: null,
+  selectedBuilding: null,
+  indoorFloor: null,
   past: [],
   future: [],
 
@@ -112,8 +144,35 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
   toggleSatellite: () => set((s) => ({ isSatellite: !s.isSatellite })),
 
-  openCreateDialog: (lng, lat) => set({ pendingPosition: { lng, lat } }),
-  closeCreateDialog: () => set({ pendingPosition: null }),
+  setDrawTool: (tool) =>
+    set((s) => ({
+      drawTool: s.drawTool === tool ? "point" : tool,
+      pendingPosition: null,
+      selectedBuilding: null,
+      indoorFloor: null,
+    })),
+
+  openCreateDialog: (lng, lat, extra) =>
+    set({
+      pendingPosition: {
+        lng,
+        lat,
+        shape: extra?.shape ?? "point",
+        radius: extra?.radius,
+        bounds: extra?.bounds,
+      },
+    }),
+  closeCreateDialog: () =>
+    set({ pendingPosition: null, drawTool: "point" }),
+
+  selectBuilding: (building) =>
+    set({
+      selectedBuilding: building,
+      // 选中建筑时退出标点选中，避免右侧面板互相叠
+      selectedId: null,
+    }),
+
+  setIndoorFloor: (floor) => set({ indoorFloor: floor }),
 
   openPublishDialog: () => set({ isPublishOpen: true }),
   closePublishDialog: () => set({ isPublishOpen: false }),

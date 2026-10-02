@@ -17,6 +17,10 @@ interface EvaluateRequest {
     title: string;
     content: string;
     buildingType: BuildingType;
+    shape?: "point" | "circle" | "rect";
+    radius?: number;
+    buildingName?: string;
+    floor?: string;
   };
   siblings: Array<{
     lat: number;

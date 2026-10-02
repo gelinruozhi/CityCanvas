@@ -74,7 +74,17 @@ export function AnnotationsListPanel() {
                   title={a.title}
                 >
                   <span className="text-sm leading-none">{meta.emoji}</span>
-                  <span className="max-w-[100px] truncate">{a.title || "未命名"}</span>
+                  <span className="max-w-[100px] truncate">
+                    {a.buildingName && a.floor
+                      ? `${a.buildingName}·${a.floor} `
+                      : ""}
+                    {a.title || "未命名"}
+                  </span>
+                  {a.shape && a.shape !== "point" && (
+                    <span className="text-[10px] leading-none text-zinc-500">
+                      {a.shape === "circle" ? "⭕" : "⬜"}
+                    </span>
+                  )}
                   {score != null && (
                     <span className={`font-mono text-[10px] ${
                       score >= 80

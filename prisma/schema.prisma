@@ -48,6 +48,13 @@ model Annotation {
   title        String
   content      String
   buildingType String   // dining | leisure | study | sports | green | other
+  // 标注形状：point（默认点位）| circle（radius 为半径米数）| rect（bounds 为对角坐标 JSON）
+  shape        String   @default("point")
+  radius       Float?
+  bounds       String?  // JSON: { sw: [lng, lat], ne: [lng, lat] }
+  // 室内标注：所属建筑与楼层（如 "图书馆" / "3F"），室外为空
+  buildingName String?
+  floor        String?
   aiScore      String?  // JSON string: { comfortScore, convenienceScore, overallScore, rating, summary, strengths[], concerns[], suggestions[], vibeTags[] }
   createdAt    DateTime @default(now())
 

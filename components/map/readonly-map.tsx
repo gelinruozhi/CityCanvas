@@ -13,6 +13,11 @@ interface ReadonlyAnnotation {
   title: string;
   buildingType: string;
   aiScore: string | null;
+  shape?: string | null;
+  radius?: number | null;
+  bounds?: string | null;
+  buildingName?: string | null;
+  floor?: string | null;
 }
 
 declare global {
@@ -115,7 +120,9 @@ export function ReadonlyMap({
         const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
 
         mapInstance = new AMap.Map(container, {
-          viewMode: "2D",
+          // 3D：与创作页 CanvasMap 一致 —— Circle/Rectangle 覆盖物在 2D 模式下不渲染 DOM
+          viewMode: "3D",
+          pitch: 30,
           zoom: 17,
           center: [centerLng, centerLat],
           mapStyle: AMAP_LIGHT_STYLE,
@@ -129,8 +136,51 @@ export function ReadonlyMap({
           if (!mounted) return;
           setLoading(false);
 
-          const addedMarkers: any[] = [];
+          const addedOverlays: any[] = [];
           annotations.forEach((a) => {
+            let color: string = getBuildingTypeMeta(a.buildingType as BuildingType).color;
+            try {
+              if (a.aiScore) color = scoreToColor(JSON.parse(a.aiScore).overallScore);
+            } catch {}
+
+            const shape = a.shape ?? "point";
+            if (shape === "circle" && a.radius) {
+              const circle = new AMap.Circle({
+                center: [a.lng, a.lat],
+                radius: a.radius,
+                strokeColor: color,
+                strokeWeight: 3,
+                strokeOpacity: 0.95,
+                fillColor: color,
+                fillOpacity: 0.3,
+                zIndex: 120,
+                extData: { id: a.id },
+              });
+              circle.on("click", () => onSelectRef.current?.(a));
+              mapInstance.add(circle);
+              addedOverlays.push(circle);
+              return;
+            }
+            if (shape === "rect" && a.bounds) {
+              try {
+                const parsed = JSON.parse(a.bounds);
+                const rect = new AMap.Rectangle({
+                  bounds: [parsed.sw, parsed.ne],
+                  strokeColor: color,
+                  strokeWeight: 3,
+                  strokeOpacity: 0.95,
+                  fillColor: color,
+                  fillOpacity: 0.3,
+                  zIndex: 120,
+                  extData: { id: a.id },
+                });
+                rect.on("click", () => onSelectRef.current?.(a));
+                mapInstance.add(rect);
+                addedOverlays.push(rect);
+                return;
+              } catch {}
+            }
+
             const marker = new AMap.Marker({
               position: [a.lng, a.lat],
               content: buildMarkerHtml(a),
@@ -139,12 +189,12 @@ export function ReadonlyMap({
             });
             marker.on("click", () => onSelectRef.current?.(a));
             mapInstance.add(marker);
-            addedMarkers.push(marker);
+            addedOverlays.push(marker);
           });
 
-          if (addedMarkers.length > 1) {
+          if (addedOverlays.length > 1) {
             try {
-              mapInstance.setFitView(addedMarkers, false, [60, 60, 60, 60]);
+              mapInstance.setFitView(addedOverlays, false, [60, 60, 60, 60]);
             } catch (e) {
               console.warn("[ReadonlyMap] setFitView 失败:", e);
             }

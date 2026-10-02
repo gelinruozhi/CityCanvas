@@ -149,6 +149,23 @@ export interface AIScore {
   vibeTags: string[];
 }
 
+/** 标注形状：点（默认）/ 圆形区域 / 矩形区域 */
+export type AnnotationShape = "point" | "circle" | "rect";
+
+export interface ShapeBounds {
+  sw: [number, number]; // 西南角 [lng, lat]
+  ne: [number, number]; // 东北角 [lng, lat]
+}
+
+export const SHAPE_META: Record<
+  AnnotationShape,
+  { label: string; icon: string }
+> = {
+  point: { label: "点位", icon: "📍" },
+  circle: { label: "圆形区域", icon: "⭕" },
+  rect: { label: "矩形区域", icon: "⬜" },
+};
+
 export interface Annotation {
   id: string;
   lat: number;
@@ -156,8 +173,26 @@ export interface Annotation {
   title: string;
   content: string;
   buildingType: BuildingType;
+  shape: AnnotationShape;
+  radius?: number; // circle 的半径（米）
+  bounds?: ShapeBounds; // rect 的对角坐标
+  buildingName?: string; // 室内标注所属建筑
+  floor?: string; // 室内标注楼层，如 "3F"
   aiScore: AIScore | null;
   createdAt: number;
+}
+
+/** 可交互建筑信息（从高德 POI 动态生成足迹） */
+export interface CampusBuilding {
+  id: string;
+  name: string;
+  buildingType: BuildingType;
+  center: { lng: number; lat: number };
+  footprint: {
+    sw: [number, number];
+    ne: [number, number];
+  };
+  floorCount: number;
 }
 
 export interface MapView {

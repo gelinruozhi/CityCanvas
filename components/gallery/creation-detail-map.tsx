@@ -28,6 +28,11 @@ export interface DetailAnnotation {
   content: string;
   buildingType: string;
   aiScore: string | null;
+  shape?: string | null;
+  radius?: number | null;
+  bounds?: string | null;
+  buildingName?: string | null;
+  floor?: string | null;
 }
 
 export function CreationDetailMap({

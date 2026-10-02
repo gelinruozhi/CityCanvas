@@ -72,6 +72,11 @@ export default async function CreationDetailPage({ params }: PageProps) {
                 content: a.content,
                 buildingType: a.buildingType,
                 aiScore: a.aiScore,
+                shape: a.shape,
+                radius: a.radius,
+                bounds: a.bounds,
+                buildingName: a.buildingName,
+                floor: a.floor,
               }))}
             />
           </div>
@@ -125,6 +130,11 @@ export default async function CreationDetailPage({ params }: PageProps) {
                 content: a.content,
                 buildingType: a.buildingType,
                 aiScore: a.aiScore,
+                shape: a.shape,
+                radius: a.radius,
+                bounds: a.bounds,
+                buildingName: a.buildingName,
+                floor: a.floor,
               }))}
             />
           </div>

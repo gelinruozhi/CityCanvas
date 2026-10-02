@@ -6,6 +6,7 @@ import { FabControls } from "@/components/map/fab-controls";
 import { CreateAnnotationDialog } from "@/components/map/create-annotation-dialog";
 import { PublishCreationDialog } from "@/components/map/publish-creation-dialog";
 import { AnnotationsListPanel } from "@/components/map/annotations-list-panel";
+import { BuildingPanel } from "@/components/map/building-panel";
 import { KeyboardShortcuts } from "@/components/map/keyboard-shortcuts";
 import { UserBadge } from "@/components/user-badge";
 
@@ -37,6 +38,7 @@ export function CreateClient() {
         <UserBadge />
         <AnnotationsListPanel />
         <FabControls />
+        <BuildingPanel />
         <AnnotationDetailPanel />
       </div>
 

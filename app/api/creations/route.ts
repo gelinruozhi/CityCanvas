@@ -33,6 +33,16 @@ const annotationSchema = z.object({
   title: z.string().min(1).max(40),
   content: z.string().min(1).max(500),
   buildingType: z.enum(BUILDING_TYPE_VALUES),
+  shape: z.enum(["point", "circle", "rect"]).default("point"),
+  radius: z.number().positive().max(2000).optional(),
+  bounds: z
+    .object({
+      sw: z.tuple([z.number(), z.number()]),
+      ne: z.tuple([z.number(), z.number()]),
+    })
+    .optional(),
+  buildingName: z.string().max(60).optional(),
+  floor: z.string().max(10).optional(),
   aiScore: z.unknown().nullable(),
 });
 
@@ -75,6 +85,11 @@ export async function POST(req: Request) {
             title: a.title,
             content: a.content,
             buildingType: a.buildingType,
+            shape: a.shape,
+            radius: a.radius,
+            bounds: a.bounds ? JSON.stringify(a.bounds) : null,
+            buildingName: a.buildingName,
+            floor: a.floor,
             aiScore: a.aiScore ? JSON.stringify(a.aiScore) : null,
           })),
         },

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { X, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
-import { getBuildingTypeMeta, BUILDING_TYPES } from "@/lib/types";
+import { getBuildingTypeMeta, BUILDING_TYPES, SHAPE_META } from "@/lib/types";
 import type { AIScore } from "@/lib/types";
 import { useEvaluateAnnotation } from "@/lib/hooks/use-evaluate-annotation";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,20 @@ export function AnnotationDetailPanel() {
                 </div>
                 <div className="text-sm font-semibold text-white">
                   {annotation.title || "未命名"}
+                </div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-zinc-500">
+                  <span>
+                    {SHAPE_META[annotation.shape ?? "point"].icon}{" "}
+                    {SHAPE_META[annotation.shape ?? "point"].label}
+                    {annotation.shape === "circle" && annotation.radius
+                      ? ` · ${annotation.radius}m`
+                      : ""}
+                  </span>
+                  {annotation.buildingName && annotation.floor && (
+                    <span className="rounded bg-orange-500/15 px-1.5 text-orange-300">
+                      {annotation.buildingName} · {annotation.floor}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
