@@ -1,30 +1,53 @@
-# CityCanvas
+# CityCanvas · 校园改造画布
 
-> 在山东财经大学地图上 DIY 你的理想校园 · AI 实时评估 · 社区共创
+> **在真实的校园地图上，圈出你的理想校园** —— 点一个位置、画一片区域、选中一栋楼，AI 实时评估你的改造创意，发布到社区共创。
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss)](https://tailwindcss.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma)](https://www.prisma.io/)
-[![Claude](https://img.shields.io/badge/Claude-AI-D97757)](https://www.anthropic.com/)
+[![高德地图](https://img.shields.io/badge/高德地图-JS%20API%202.0-00B96B)](https://lbs.amap.com/)
 
 ---
 
-## ✨ 项目简介
+## ✨ 这是什么
 
-**CityCanvas** 是一个以山东财经大学校园地图为画布的 DIY 创意创作平台。用户在真实地图上点击、添加文字描述，AI（Claude）会实时评估"舒适度+便捷度"，作品可发布到社区被点赞、评论、二次创作（Fork）。
+CityCanvas 是一个以**山东财经大学真实校园地图**为画布的 DIY 改造平台。它不是一个"在地图上打标签"的工具，而是一套**校园改造编辑器**：
 
-> 详细 pitch 见 [PITCH.md](PITCH.md) · 部署指南见 [DEPLOY.md](DEPLOY.md)
+### 🎨 自由绘图工具
+
+| 工具 | 交互 | 适合表达 |
+|---|---|---|
+| 📍 **点位** | 点击地图任意位置 | 一台售货机、一把长椅、一个快闪咖啡角 |
+| ⭕ **圆形区域** | 点击定圆心 → 移动定半径 → **再次点击完成** | 一片草坪音乐角、一个篮球场 |
+| ⬜ **矩形区域** | 点击一角 → 移动 → **点击对角完成** | 连廊雨棚、一片屋顶花园 |
+
+两次点击明确开始与结束，Esc 随时取消；选区范围（60m 分析圈）与预览虚线全程可见，不会"不知道自己选了哪"。
+
+### 🏢 可交互建筑 + 室内外分离
+
+- 地图上自动铺开**建筑足迹层**（由高德 POI 动态生成，按建筑类型着色），窗口/档口类小店自动并入所属教学楼、餐厅，不产生碎片
+- **点击任意建筑** → 建筑面板：类型、完整**楼层体系**（1F…NF）
+- **选层进入室内编辑模式**：视野贴地细看这栋楼，添加的创意自动带上 `建筑·楼层` 标签，AI 按室内场景评估
+- 不选楼就是**室外模式**：圈地块、画区域、改造校园的任何角落
+
+### 🤖 AI 实时评估
+
+每个创意提交后，AI（大模型经 OpenAI 兼容网关调用）会结合**真实周边建筑**（高德 POI，250m 内）、你圈选的**覆盖范围与楼层位置**，从舒适度、便捷度两个维度打分，给出具体的 strengths / concerns / suggestions —— 像懂校园的学长在给建议，而不是空话。
+
+### 🌗 沉浸式地图
+
+- 默认**夜间地图**与暗黑玻璃 UI 融为一体
+- 一键切换**卫星实景** —— 真实校园的楼栋、绿化、操场一目了然
+- 点击创作时自动拉近到建筑级细节，右侧面板不遮挡地图
+
+### 💖 社区共创
+
+瀑布流广场、心形点赞、实时评论、**Fork 二次创作**（连形状、楼层一起继承）—— 每个创意都可以成为别人灵感的起点。
 
 ---
 
-## 🚀 本地启动
-
-### 前置要求
-- Node.js 22+
-- pnpm 9+
-
-### 步骤
+## 🚀 快速开始
 
 ```bash
 # 1. 安装依赖
@@ -32,25 +55,17 @@ pnpm install
 
 # 2. 准备环境变量
 cp .env.example .env.local
-# 编辑 .env.local 填入：
-#   NEXT_PUBLIC_AMAP_KEY            高德 Web 端 JS API Key
-#   NEXT_PUBLIC_AMAP_SECURITY_CODE  对应安全密钥
-#   AMAP_REST_KEY                   高德 Web 服务 Key（POI 搜索）
-#   AI_GATEWAY_API_KEY              AI 网关 API Key
-#   AI_GATEWAY_BASE_URL             AI 网关地址（anthropic 风格到域名级；openai 风格到 /compatible-mode/v1）
-#   AI_GATEWAY_API_STYLE            anthropic（默认）| openai（网关仅提供 OpenAI 兼容接口时）
-#   AI_GATEWAY_MODELS               可选：模型回退链（逗号分隔，代理网关按 token 绑定模型组时用）
-#   NEXT_PUBLIC_SITE_URL            可选：站点地址（OG 分享卡用）
+# 填入：高德 Web Key / 安全密钥 / Web 服务 Key、AI 网关 Key 等（见 .env.example 注释）
 
 # 3. 初始化数据库
-pnpm prisma generate
-pnpm prisma db push
+pnpm prisma generate && pnpm prisma db push
 
 # 4. 启动
-pnpm dev
+pnpm dev        # 开发
+pnpm build && pnpm start   # 生产
 ```
 
-打开 [http://localhost:3000](http://localhost:3000)
+打开 [http://localhost:3000](http://localhost:3000)。
 
 ---
 
@@ -60,68 +75,45 @@ pnpm dev
 |---|---|
 | 前端 | Next.js 15 (App Router) + React 19 + TypeScript strict |
 | UI | Tailwind CSS v4 + shadcn/ui + Framer Motion + lucide-react |
-| 地图 | 高德 JS API 2.0 (`@amap/amap-jsapi-loader`) |
+| 地图 | 高德 JS API 2.0（3D 矢量 + 卫星图层 + PlaceSearch + 自实现绘图交互） |
 | 后端 | Next.js Route Handlers (`app/api/**/route.ts`) |
 | ORM/DB | Prisma + SQLite（生产可切 Postgres） |
 | 状态 | Zustand + TanStack Query |
-| AI | `@anthropic-ai/sdk` (Claude Sonnet 4.6 / Opus 4.8) |
-| 部署 | Docker Compose + Nginx + Let's Encrypt |
+| AI | OpenAI 兼容网关（`AI_GATEWAY_*` 环境变量，支持 Anthropic 官方 API） |
+| 部署 | Docker Compose + Nginx（standalone 产物，数据卷持久化） |
 
 ---
 
-## 📂 目录结构
+## 📂 关键模块
 
 ```
 CityCanvas/
-├── app/                  # Next.js App Router
-│   ├── api/              # Route Handlers (users, creations, comments, like, evaluate)
-│   ├── create/           # 创作页（地图 + Dialog + 详情面板）
-│   ├── gallery/          # 广场列表 + 详情
-│   ├── layout.tsx        # 根布局（暗黑模式 + Provider）
-│   ├── page.tsx          # 首页
-│   └── opengraph-image.tsx  # 动态 OG 图
-├── components/
-│   ├── ui/               # shadcn 组件
-│   ├── map/              # 地图相关（CanvasMap, ReadonlyMap, FAB, Dialog）
-│   └── gallery/          # 广场组件（CreationCard, LikeButton, CommentSection）
+├── app/
+│   ├── api/                  # creations / evaluate / stats / users 路由
+│   ├── create/               # 创作页（地图编辑器 + 右侧面板）
+│   └── gallery/[id]/         # 作品详情（点/圆/矩形三种形状渲染）
+├── components/map/
+│   ├── canvas-map.tsx        # 编辑器核心：形状渲染、绘图交互、建筑层、室内模式
+│   ├── building-panel.tsx    # 建筑面板（楼层体系 + 室内模式入口）
+│   └── fab-controls.tsx      # FAB + 绘图工具组
 ├── lib/
-│   ├── ai/               # Claude 评估器 + Prompt
-│   ├── amap/             # 高德 POI 搜索（前/后端）
-│   ├── store/            # Zustand stores
-│   ├── hooks/            # TanStack Query hooks
-│   ├── campus-context.ts # 山财校园建筑清单（喂给 AI）
-│   ├── types.ts          # 全局类型
-│   └── prisma.ts         # Prisma 单例
-├── prisma/schema.prisma
-├── nginx/nginx.conf
-├── Dockerfile
-├── docker-compose.yml
-├── CLAUDE.md             # 项目宪法（AI 协作规则）
-├── DEPLOY.md             # 部署指南
-└── PITCH.md              # 黑客松路演大纲
+│   ├── amap/campus-buildings.ts  # POI → 可交互建筑足迹（含窗口并入大建筑）
+│   ├── ai/                   # 评估器（模型回退链、JSON 修复、形状/楼层上下文）
+│   └── store/                # Zustand（标注、绘图工具、建筑选择、室内楼层）
+└── prisma/schema.prisma      # Annotation: shape/radius/bounds/buildingName/floor
 ```
-
----
-
-## 🌟 关键功能
-
-- 🗺 **真实地图创作**：高德 3D 夜景地图，自动定位山财圣井校区
-- 🎯 **POI 锚定的 AI 评估**：Claude 基于真实周边建筑名（图书馆/教学楼）做空间推理，评估更精准
-- 💖 **社区互动**：瀑布流广场、心形粒子点赞、实时评论、Fork 二次创作
-- 👤 **匿名免注册**：自动生成中文昵称（"打盹的小鹿"），可改名
 
 ---
 
 ## 🐳 一键部署
 
 ```bash
-cp .env.example .env
-# 填入 keys
+cp .env.example .env   # 填入 keys（NEXT_PUBLIC_* 在构建期经 build args 注入）
 docker compose build
 docker compose up -d
 ```
 
-详细步骤见 [DEPLOY.md](DEPLOY.md)。
+详细步骤（域名 / HTTPS / 故障排查）见 [DEPLOY.md](DEPLOY.md)。
 
 ---
 

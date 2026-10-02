@@ -69,8 +69,8 @@ const PENDING_MARKER_CONTENT = `
   </div>
 `;
 
-// 选区/预览圆圈通用样式
-function circleOptions(center: [number, number], radius = 150) {
+// 选区/预览圆圈通用样式：60m 半径贴合"改造一处"的尺度，不再覆盖半个校园
+function circleOptions(center: [number, number], radius = 60) {
   return {
     center,
     radius,
@@ -107,8 +107,8 @@ export function CanvasMap() {
   const satelliteLayersRef = useRef<{ sat: any; road: any } | null>(null);
   const pendingOverlaysRef = useRef<AMapOverlay[]>([]);
   const analysisCircleRef = useRef<any>(null);
-  const mouseToolRef = useRef<any>(null);
-  const drawToolRef = useRef<"point" | "circle" | "rect">("point");
+  const drawStartRef = useRef<{ lng: number; lat: number } | null>(null);
+  const drawPreviewRef = useRef<any>(null);
   const buildingPolysRef = useRef<Map<string, AMapOverlay>>(new Map());
   const buildingsRef = useRef<any[]>([]);
   // 记录每个标注覆盖物上次渲染的样式签名，避免输入时全量重建 DOM
@@ -128,7 +128,11 @@ export function CanvasMap() {
   const selectBuilding = useAnnotationStore((s) => s.selectBuilding);
   const indoorFloor = useAnnotationStore((s) => s.indoorFloor);
 
+  // 供地图事件回调读取的最新值（回调只绑定一次）
+  const drawToolRef = useRef(drawTool);
   drawToolRef.current = drawTool;
+  const selectedBuildingRef = useRef(selectedBuilding);
+  selectedBuildingRef.current = selectedBuilding;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -149,12 +153,7 @@ export function CanvasMap() {
     AMapLoader.load({
       key,
       version: "2.0",
-      plugins: [
-        "AMap.Scale",
-        "AMap.ControlBar",
-        "AMap.PlaceSearch",
-        "AMap.MouseTool",
-      ],
+      plugins: ["AMap.Scale", "AMap.ControlBar", "AMap.PlaceSearch"],
     })
       .then((AMap) => {
         if (!mounted || !containerRef.current) return;
@@ -202,11 +201,81 @@ export function CanvasMap() {
           }
         });
 
-        // 点位工具：点击地图直接创建（圆/矩形由 MouseTool 接管绘制）
+        // 两次点击间的米数（自实现绘制用）
+        const metersBetween = (
+          a: { lng: number; lat: number },
+          b: { lng: number; lat: number }
+        ) => {
+          const dLat = (b.lat - a.lat) * 111320;
+          const dLng =
+            (b.lng - a.lng) * 111320 * Math.cos((a.lat * Math.PI) / 180);
+          return Math.hypot(dLat, dLng);
+        };
+
+        const clearDrawPreview = () => {
+          if (drawPreviewRef.current) {
+            map.remove(drawPreviewRef.current);
+            drawPreviewRef.current = null;
+          }
+        };
+
         map.on("click", (e: any) => {
-          if (drawToolRef.current !== "point") return;
           const lng = e.lnglat.getLng();
           const lat = e.lnglat.getLat();
+          const tool = drawToolRef.current;
+
+          // 圆形/矩形：两次点击 —— 第一次定圆心/起点，第二次完成
+          if (tool === "circle" || tool === "rect") {
+            if (!drawStartRef.current) {
+              drawStartRef.current = { lng, lat };
+              return;
+            }
+            const start = drawStartRef.current;
+            drawStartRef.current = null;
+            clearDrawPreview();
+            if (tool === "circle") {
+              const radius = Math.max(
+                10,
+                Math.round(metersBetween(start, { lng, lat }))
+              );
+              openCreateDialog(
+                (start.lng + lng) / 2,
+                (start.lat + lat) / 2,
+                { shape: "circle", radius }
+              );
+            } else {
+              const shapeBounds: ShapeBounds = {
+                sw: [Math.min(start.lng, lng), Math.min(start.lat, lat)],
+                ne: [Math.max(start.lng, lng), Math.max(start.lat, lat)],
+              };
+              openCreateDialog(
+                (start.lng + lng) / 2,
+                (start.lat + lat) / 2,
+                { shape: "rect", bounds: shapeBounds }
+              );
+            }
+            return;
+          }
+
+          // 点位工具：优先命中附近建筑（点击点 18m 内最近的建筑足迹视为选中建筑）
+          let nearest: {
+            id: string;
+            dist: number;
+          } | null = null;
+          for (const b of buildingsRef.current) {
+            const d = metersBetween(clickPoint(lng, lat), b.center);
+            if (d < 18 && (!nearest || d < nearest.dist)) {
+              nearest = { id: b.id, dist: d };
+            }
+          }
+          if (nearest) {
+            const b = buildingsRef.current.find((x) => x.id === nearest!.id);
+            if (b) {
+              selectBuilding(b);
+              return;
+            }
+          }
+
           openCreateDialog(lng, lat);
           // 点击创作时拉近到能看清脚下建筑细节，同时不丢失方位感
           if (map.getZoom() < 17.5) {
@@ -219,6 +288,51 @@ export function CanvasMap() {
           }
         });
 
+        function clickPoint(lng: number, lat: number) {
+          return { lng, lat };
+        }
+
+        // 圆/矩形绘制时：mousemove 实时预览
+        map.on("mousemove", (e: any) => {
+          const tool = drawToolRef.current;
+          const start = drawStartRef.current;
+          if ((tool !== "circle" && tool !== "rect") || !start) return;
+          const lng = e.lnglat.getLng();
+          const lat = e.lnglat.getLat();
+          clearDrawPreview();
+          if (tool === "circle") {
+            const radius = Math.max(5, metersBetween(start, { lng, lat }));
+            drawPreviewRef.current = new AMap.Circle({
+              center: [start.lng, start.lat],
+              radius,
+              strokeColor: "#fb923c",
+              strokeOpacity: 0.9,
+              strokeWeight: 2,
+              strokeStyle: "dashed",
+              fillColor: "#fb923c",
+              fillOpacity: 0.12,
+              bubble: true,
+              zIndex: 90,
+            });
+          } else {
+            drawPreviewRef.current = new AMap.Rectangle({
+              bounds: [
+                [Math.min(start.lng, lng), Math.min(start.lat, lat)],
+                [Math.max(start.lng, lng), Math.max(start.lat, lat)],
+              ],
+              strokeColor: "#fb923c",
+              strokeOpacity: 0.9,
+              strokeWeight: 2,
+              strokeStyle: "dashed",
+              fillColor: "#fb923c",
+              fillOpacity: 0.12,
+              bubble: true,
+              zIndex: 90,
+            });
+          }
+          map.add(drawPreviewRef.current);
+        });
+
         mapRef.current = map;
 
         // 卫星影像 + 路网叠加图层（按 isSatellite 状态挂载/卸载）
@@ -226,32 +340,6 @@ export function CanvasMap() {
           sat: new AMap.TileLayer.Satellite({ zIndex: 5 }),
           road: new AMap.TileLayer.RoadNet({ zIndex: 6 }),
         };
-
-        // MouseTool：圆形/矩形区域绘制
-        const mouseTool = new AMap.MouseTool(map);
-        mouseTool.on("draw", (e: any) => {
-          const overlay = e.overlay;
-          const tool = drawToolRef.current;
-          if (tool === "circle" && overlay.getRadius) {
-            const center = overlay.getCenter();
-            const radius = Math.round(overlay.getRadius());
-            openCreateDialog(center.getLng(), center.getLat(), { shape: "circle", radius });
-          } else if (tool === "rect" && overlay.getBounds) {
-            const bounds = overlay.getBounds();
-            const shapeBounds: ShapeBounds = {
-              sw: [bounds.southwest.lng, bounds.southwest.lat],
-              ne: [bounds.northeast.lng, bounds.northeast.lat],
-            };
-            const center = bounds.getCenter();
-            openCreateDialog(center.getLng(), center.getLat(), {
-              shape: "rect",
-              bounds: shapeBounds,
-            });
-          }
-          // 清掉 MouseTool 的临时 overlay，交由标注渲染接管
-          mouseTool.close(true);
-        });
-        mouseToolRef.current = mouseTool;
 
         setMapReady(true);
       })
@@ -309,10 +397,6 @@ export function CanvasMap() {
     });
   }
 
-  // selectedBuilding 的 ref 镜像：供建筑多边形事件回调读取最新值
-  const selectedBuildingRef = useRef(selectedBuilding);
-  selectedBuildingRef.current = selectedBuilding;
-
   useEffect(() => {
     if (!mapRef.current) return;
     mapRef.current.setMapStyle(isDarkMap ? AMAP_DARK_STYLE : AMAP_LIGHT_STYLE);
@@ -330,35 +414,34 @@ export function CanvasMap() {
     }
   }, [isSatellite, mapReady]);
 
-  // 绘图工具切换：circle/rect 交给 MouseTool，point 关闭绘制
+  // 绘图工具切换：进入 circle/rect 时十字光标；离开时清掉起点与预览
   useEffect(() => {
-    const tool = mouseToolRef.current;
-    if (!tool || !mapReady) return;
-    if (drawTool === "circle") {
-      tool.circle({
-        strokeColor: "#fb923c",
-        strokeOpacity: 0.9,
-        strokeWeight: 2,
-        strokeStyle: "dashed",
-        fillColor: "#fb923c",
-        fillOpacity: 0.12,
-      });
-      mapRef.current?.setDefaultCursor?.("crosshair");
-    } else if (drawTool === "rect") {
-      tool.rectangle({
-        strokeColor: "#fb923c",
-        strokeOpacity: 0.9,
-        strokeWeight: 2,
-        strokeStyle: "dashed",
-        fillColor: "#fb923c",
-        fillOpacity: 0.12,
-      });
+    if (!mapReady) return;
+    if (drawTool === "circle" || drawTool === "rect") {
       mapRef.current?.setDefaultCursor?.("crosshair");
     } else {
-      tool.close(true);
+      drawStartRef.current = null;
+      if (drawPreviewRef.current) {
+        mapRef.current?.remove?.(drawPreviewRef.current);
+        drawPreviewRef.current = null;
+      }
       mapRef.current?.setDefaultCursor?.("default");
     }
   }, [drawTool, mapReady]);
+
+  // Esc 取消进行中的绘制（清起点与预览）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      drawStartRef.current = null;
+      if (drawPreviewRef.current) {
+        mapRef.current?.remove?.(drawPreviewRef.current);
+        drawPreviewRef.current = null;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // 标注渲染：point → Marker；circle → Circle；rect → Rectangle
   useEffect(() => {

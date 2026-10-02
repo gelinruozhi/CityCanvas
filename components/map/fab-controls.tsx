@@ -176,8 +176,8 @@ export function FabControls() {
           ·{" "}
           {drawing
             ? drawTool === "circle"
-              ? "在地图上点击圆心并拖拽画圆"
-              : "在地图上拖拽画出矩形区域"
+              ? "点击定圆心，再次点击完成圆 · Esc 取消"
+              : "点击矩形一角，再次点击对角完成 · Esc 取消"
             : selectedBuilding
             ? `已选中 ${selectedBuilding.name}${indoorFloor ? ` · ${indoorFloor}` : ""}`
             : "点击地图任意位置 · 按 ? 看快捷键"}
