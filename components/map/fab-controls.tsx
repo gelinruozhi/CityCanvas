@@ -203,13 +203,16 @@ function ToolButton({
       <TooltipTrigger asChild>
         <button
           onClick={onClick}
-          className={`grid h-9 w-9 place-items-center rounded-full transition-all ${
+          className={`relative grid h-9 w-9 place-items-center rounded-full transition-all ${
             active
               ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-500/50"
               : "text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
           }`}
         >
           {children}
+          {active && (
+            <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-orange-400" />
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="right">{label}</TooltipContent>

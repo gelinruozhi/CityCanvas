@@ -110,6 +110,8 @@ export function CanvasMap() {
   const drawStartRef = useRef<{ lng: number; lat: number } | null>(null);
   const drawPreviewRef = useRef<any>(null);
   const buildingPolysRef = useRef<Map<string, AMapOverlay>>(new Map());
+  const buildingLabelsRef = useRef<Map<string, AMapOverlay>>(new Map());
+  const selectedPulseRef = useRef<AMapOverlay | null>(null);
   const buildingsRef = useRef<any[]>([]);
   // 记录每个标注覆盖物上次渲染的样式签名，避免输入时全量重建 DOM
   const overlayMetaRef = useRef<Map<string, string>>(new Map());
@@ -166,6 +168,8 @@ export function CanvasMap() {
           zoom: DEFAULT_MAP_VIEW.zoom,
           center: DEFAULT_MAP_VIEW.center,
           mapStyle: isDarkMap ? AMAP_DARK_STYLE : AMAP_LIGHT_STYLE,
+          // 关闭高德原生 POI 标注：建筑名由我们的足迹标签统一提供，避免双重标注
+          features: ["bg", "road", "building"],
           showLabel: true,
         });
 
@@ -182,21 +186,27 @@ export function CanvasMap() {
           if (status === "complete" && result?.poiList?.pois?.length > 0) {
             const poi = result.poiList.pois[0];
             const center: [number, number] = [poi.location.lng, poi.location.lat];
-            // zoom 17 能看清单体建筑与道路，16 的全校缩略图太远没有代入感
-            map.setZoomAndCenter(17, center);
+            // 视野固定使用校准基准（constants），不随 PlaceSearch 结果漂移，
+            // 否则静态建筑足迹会整体偏出视野；campusCenter 仅供 AI 空间推理
             setCampusCenter({ lng: center[0], lat: center[1] });
             loadBuildings(AMap, map, { lng: center[0], lat: center[1] });
           } else {
-            // 兜底再搜一次
+            // 兜底再搜一次；仍失败则用占位中心拉起视野（campusCenter 保持 null，
+            // AI 评估继续等待真实定位 —— 不得回退到硬编码坐标）
             placeSearch.search("山东财经大学", (st: string, r: any) => {
               if (st === "complete" && r?.poiList?.pois?.length > 0) {
                 const poi = r.poiList.pois[0];
-                const lng = poi.location.lng;
-                const lat = poi.location.lat;
-                map.setZoomAndCenter(17, [lng, lat]);
-                setCampusCenter({ lng, lat });
-                loadBuildings(AMap, map, { lng, lat });
+                setCampusCenter({ lng: poi.location.lng, lat: poi.location.lat });
+                loadBuildings(AMap, map, {
+                  lng: poi.location.lng,
+                  lat: poi.location.lat,
+                });
               }
+              // 定位失败：视野仍是固定校准中心，建筑足迹照常加载
+              loadBuildings(AMap, map, {
+                lng: DEFAULT_MAP_VIEW.center[0],
+                lat: DEFAULT_MAP_VIEW.center[1],
+              });
             });
           }
         });
@@ -223,6 +233,7 @@ export function CanvasMap() {
           const lng = e.lnglat.getLng();
           const lat = e.lnglat.getLat();
           const tool = drawToolRef.current;
+          // 建筑足迹层的 click 已由 polygon 自己处理（多边形命中），这里兜底容差命中
 
           // 圆形/矩形：两次点击 —— 第一次定圆心/起点，第二次完成
           if (tool === "circle" || tool === "rect") {
@@ -335,6 +346,9 @@ export function CanvasMap() {
 
         mapRef.current = map;
 
+        // zoom 变化时同步建筑名称标签显隐
+        map.on("zoomend", () => syncBuildingLabels(map.getZoom?.() ?? 17));
+
         // 卫星影像 + 路网叠加图层（按 isSatellite 状态挂载/卸载）
         satelliteLayersRef.current = {
           sat: new AMap.TileLayer.Satellite({ zIndex: 5 }),
@@ -353,6 +367,7 @@ export function CanvasMap() {
       mapRef.current = null;
       markersRef.current.clear();
       buildingPolysRef.current.clear();
+      buildingLabelsRef.current.clear();
       buildingsRef.current = [];
       overlayMetaRef.current.clear();
       pendingOverlaysRef.current = [];
@@ -360,7 +375,7 @@ export function CanvasMap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openCreateDialog, setCampusCenter]);
 
-  /** 拉取校园建筑并渲染可点击足迹 */
+  /** 拉取校园建筑并渲染可点击足迹 + 名称标签 */
   function loadBuildings(AMap: any, map: any, center: { lng: number; lat: number }) {
     fetchCampusBuildings(AMap, center).then((buildings) => {
       const liveMap = mapRef.current;
@@ -375,26 +390,54 @@ export function CanvasMap() {
             [b.footprint.ne[0], b.footprint.ne[1]],
             [b.footprint.sw[0], b.footprint.ne[1]],
           ],
+          // 现代化描边：细白边 + 淡填充，让 3D 楼块透出来，只"描"不"盖"
           strokeColor: "#ffffff",
-          strokeOpacity: 0.18,
-          strokeWeight: 1,
+          strokeOpacity: 0.5,
+          strokeWeight: 1.4,
           fillColor: meta.color,
-          fillOpacity: 0.08,
+          fillOpacity: 0.1,
           cursor: "pointer",
           zIndex: 40,
         });
         polygon.on("click", () => selectBuilding(b));
         polygon.on("mouseover", () =>
-          polygon.setOptions({ fillOpacity: 0.2, strokeOpacity: 0.5 })
+          polygon.setOptions({ fillOpacity: 0.2, strokeOpacity: 0.7, strokeWeight: 2 })
         );
         polygon.on("mouseout", () => {
           const active = selectedBuildingRef.current?.id === b.id;
-          if (!active) polygon.setOptions({ fillOpacity: 0.08, strokeOpacity: 0.18 });
+          if (!active)
+            polygon.setOptions({ fillOpacity: 0.1, strokeOpacity: 0.5, strokeWeight: 1.4 });
         });
         liveMap.add(polygon);
         buildingPolysRef.current.set(b.id, polygon);
+
+        // 建筑名称标签（zoom ≥ 17 显示，由 zoomend effect 统一控制）
+        const shortName = b.name.replace(/\(.*?\)/g, "");
+        const label = new AMap.Marker({
+          position: [b.center.lng, b.center.lat],
+          content: `<span style="display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;
+            font-size:11px;font-weight:600;color:rgba(255,255,255,.92);
+            background:rgba(9,9,11,.72);backdrop-filter:blur(4px);
+            padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);
+            text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none;">${shortName}</span>`,
+          anchor: "center",
+          zIndex: 45,
+        });
+        liveMap.add(label);
+        buildingLabelsRef.current.set(b.id, label);
       }
+      // 初始可见性对齐当前 zoom
+      syncBuildingLabels(map.getZoom?.() ?? DEFAULT_MAP_VIEW.zoom);
     });
+  }
+
+  /** 名称标签显隐：默认显示，仅在极端缩小（zoom < 15）时隐藏 */
+  function syncBuildingLabels(zoom: number) {
+    const show = zoom >= 15;
+    for (const [, label] of buildingLabelsRef.current) {
+      if (show) label.show?.();
+      else label.hide?.();
+    }
   }
 
   useEffect(() => {
@@ -614,17 +657,42 @@ export function CanvasMap() {
     }
   }, [selectedId, annotations, selectedBuilding, indoorFloor, mapReady]);
 
-  // 建筑选中高亮/恢复
+  // 建筑选中：足迹高亮 + 中心脉冲定位点；取消时恢复
   useEffect(() => {
+    const AMap = aMapRef.current;
+    const map = mapRef.current;
+    if (!AMap || !map || !mapReady) return;
+
     for (const [id, poly] of buildingPolysRef.current.entries()) {
       const active = selectedBuilding?.id === id;
       poly.setOptions(
         active
-          ? { fillOpacity: 0.28, strokeOpacity: 0.9, strokeColor: "#fb923c", strokeWeight: 2 }
-          : { fillOpacity: 0.08, strokeOpacity: 0.18, strokeColor: "#ffffff", strokeWeight: 1 }
+          ? { fillOpacity: 0.26, strokeOpacity: 0.95, strokeColor: "#fb923c", strokeWeight: 2.4 }
+          : { fillOpacity: 0.1, strokeOpacity: 0.5, strokeColor: "#ffffff", strokeWeight: 1.4 }
       );
     }
-  }, [selectedBuilding]);
+
+    if (selectedBuilding) {
+      const pos: [number, number] = [
+        selectedBuilding.center.lng,
+        selectedBuilding.center.lat,
+      ];
+      if (!selectedPulseRef.current) {
+        selectedPulseRef.current = new AMap.Marker({
+          position: pos,
+          content: PENDING_MARKER_CONTENT,
+          anchor: "center",
+          zIndex: 310,
+        });
+        map.add(selectedPulseRef.current);
+      } else {
+        selectedPulseRef.current.setPosition(pos);
+      }
+      selectedPulseRef.current.show?.();
+    } else if (selectedPulseRef.current) {
+      selectedPulseRef.current.hide?.();
+    }
+  }, [selectedBuilding, mapReady]);
 
   return (
     <div className="relative h-full w-full">

@@ -30,9 +30,11 @@ export function BuildingPanel() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 420, opacity: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="pointer-events-auto absolute right-4 top-20 z-20 w-[360px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/85 backdrop-blur-2xl shadow-2xl shadow-black/40"
+          className="pointer-events-auto absolute right-4 top-20 z-20 w-[360px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/85 shadow-2xl shadow-black/40 backdrop-blur-2xl"
         >
-          <header className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+          {/* 顶部品牌渐变条 */}
+          <div className="h-0.5 w-full bg-gradient-to-r from-orange-500/80 via-rose-500/50 to-transparent" />
+          <header className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-2.5">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-orange-500/15 text-orange-300">
                 <Building2 className="h-5 w-5" />
