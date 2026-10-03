@@ -10,8 +10,8 @@ import type {
 const HISTORY_LIMIT = 30;
 
 export interface PendingAnnotationShape {
-  lng: number;
-  lat: number;
+  x: number;
+  y: number;
   shape: AnnotationShape;
   radius?: number;
   bounds?: ShapeBounds;
@@ -27,7 +27,6 @@ interface AnnotationStore {
   /** 当前绘图工具：point 直接点击，circle/rect 进入拖拽绘制 */
   drawTool: AnnotationShape;
   isPublishOpen: boolean;
-  campusCenter: { lng: number; lat: number } | null;
   /** 点选的可交互建筑（室外建筑模式） */
   selectedBuilding: CampusBuilding | null;
   /** 室内编辑楼层（选中建筑 + 选层后进入室内模式） */
@@ -48,8 +47,8 @@ interface AnnotationStore {
 
   setDrawTool: (tool: AnnotationShape) => void;
   openCreateDialog: (
-    lng: number,
-    lat: number,
+    x: number,
+    y: number,
     extra?: { shape?: AnnotationShape; radius?: number; bounds?: ShapeBounds }
   ) => void;
   closeCreateDialog: () => void;
@@ -59,8 +58,6 @@ interface AnnotationStore {
 
   openPublishDialog: () => void;
   closePublishDialog: () => void;
-
-  setCampusCenter: (center: { lng: number; lat: number }) => void;
 
   undo: () => boolean;
   redo: () => boolean;
@@ -89,7 +86,6 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   pendingPosition: null,
   drawTool: "point",
   isPublishOpen: false,
-  campusCenter: null,
   selectedBuilding: null,
   indoorFloor: null,
   past: [],
@@ -152,11 +148,11 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       indoorFloor: null,
     })),
 
-  openCreateDialog: (lng, lat, extra) =>
+  openCreateDialog: (x, y, extra) =>
     set({
       pendingPosition: {
-        lng,
-        lat,
+        x,
+        y,
         shape: extra?.shape ?? "point",
         radius: extra?.radius,
         bounds: extra?.bounds,
@@ -176,8 +172,6 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
   openPublishDialog: () => set({ isPublishOpen: true }),
   closePublishDialog: () => set({ isPublishOpen: false }),
-
-  setCampusCenter: (center) => set({ campusCenter: center }),
 
   undo: () => {
     const s = get();

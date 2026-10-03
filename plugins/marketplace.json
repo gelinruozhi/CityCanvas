@@ -1,0 +1,18 @@
+{
+  "name": "dev-citycanvas-8c3c267f",
+  "plugins": [
+    {
+      "name": "amap",
+      "source": "./amap",
+      "version": "0.1.0",
+      "description": "高德地图 Web 服务 MCP 工具集 + 高德地图开发参考技能：地理编码、POI 搜索、路线规划、天气、静态地图等",
+      "displayName": "AMap API",
+      "displayName_i18n": {
+        "zh-CN": "高德地图 API"
+      },
+      "description_i18n": {
+        "zh-CN": "高德地图 Web 服务 MCP 工具集 + 高德开发参考技能：地理编码、POI 搜索、路线规划、天气、静态地图等。"
+      }
+    }
+  ]
+}

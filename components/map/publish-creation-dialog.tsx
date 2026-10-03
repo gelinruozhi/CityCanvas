@@ -53,8 +53,8 @@ export function PublishCreationDialog() {
           title: title.trim(),
           mapView: DEFAULT_MAP_VIEW,
           annotations: annotations.map((a) => ({
-            lat: a.lat,
-            lng: a.lng,
+            x: a.x,
+            y: a.y,
             title: a.title,
             content: a.content,
             buildingType: a.buildingType,

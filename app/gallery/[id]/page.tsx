@@ -66,8 +66,8 @@ export default async function CreationDetailPage({ params }: PageProps) {
             <ForkButton
               creationTitle={creation.title}
               annotations={creation.annotations.map((a) => ({
-                lat: a.lat,
-                lng: a.lng,
+                x: a.x,
+                y: a.y,
                 title: a.title,
                 content: a.content,
                 buildingType: a.buildingType,
@@ -124,8 +124,8 @@ export default async function CreationDetailPage({ params }: PageProps) {
             <CreationDetailMap
               annotations={creation.annotations.map((a) => ({
                 id: a.id,
-                lat: a.lat,
-                lng: a.lng,
+                x: a.x,
+                y: a.y,
                 title: a.title,
                 content: a.content,
                 buildingType: a.buildingType,

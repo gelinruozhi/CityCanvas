@@ -28,8 +28,8 @@ const BUILDING_TYPE_VALUES = [
 ] as const;
 
 const annotationSchema = z.object({
-  lat: z.number(),
-  lng: z.number(),
+  x: z.number().min(-50).max(900),
+  y: z.number().min(-50).max(1600),
   title: z.string().min(1).max(40),
   content: z.string().min(1).max(500),
   buildingType: z.enum(BUILDING_TYPE_VALUES),
@@ -80,8 +80,8 @@ export async function POST(req: Request) {
         mapView: JSON.stringify(mapView),
         annotations: {
           create: annotations.map((a) => ({
-            lat: a.lat,
-            lng: a.lng,
+            x: a.x,
+            y: a.y,
             title: a.title,
             content: a.content,
             buildingType: a.buildingType,

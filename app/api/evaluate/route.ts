@@ -29,8 +29,8 @@ const BUILDING_TYPE_VALUES = [
 ] as const;
 
 const annotationSchema = z.object({
-  lat: z.number(),
-  lng: z.number(),
+  x: z.number(),
+  y: z.number(),
   title: z.string().min(1).max(60),
   content: z.string().min(1).max(800),
   buildingType: z.enum(BUILDING_TYPE_VALUES),
@@ -46,21 +46,16 @@ const annotationSchema = z.object({
   floor: z.string().max(10).optional(),
 });
 
-const placeSchema = z.object({
+const buildingRefSchema = z.object({
   name: z.string(),
-  type: z.string(),
-  distance: z.number(),
-  address: z.string().optional(),
+  dist: z.number(),
 });
 
 const bodySchema = z.object({
   annotation: annotationSchema,
   siblings: z.array(annotationSchema.omit({ content: true })).default([]),
-  campusCenter: z
-    .object({ lng: z.number(), lat: z.number() })
-    .nullable()
-    .optional(),
-  nearbyPlaces: z.array(placeSchema).default([]),
+  nearbyBuildings: z.array(buildingRefSchema).default([]),
+  zone: z.string().default(""),
 });
 
 export const maxDuration = 60;

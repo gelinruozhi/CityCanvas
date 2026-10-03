@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Building2, X, DoorOpen, Layers } from "lucide-react";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
 import { getBuildingTypeMeta } from "@/lib/types";
-import { buildingFloors } from "@/lib/amap/campus-buildings";
+import { buildingFloors } from "@/lib/campus/map-data";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -108,9 +108,7 @@ export function BuildingPanel() {
                 <Button
                   className="flex-1"
                   onClick={() =>
-                    openCreateDialog(building.center.lng, building.center.lat, {
-                      shape: "point",
-                    })
+                    openCreateDialog(building.x, building.y, { shape: "point" })
                   }
                 >
                   在 {indoorFloor} 添加创意
@@ -120,9 +118,7 @@ export function BuildingPanel() {
                   variant="outline"
                   className="flex-1"
                   onClick={() =>
-                    openCreateDialog(building.center.lng, building.center.lat, {
-                      shape: "point",
-                    })
+                    openCreateDialog(building.x, building.y, { shape: "point" })
                   }
                 >
                   在楼内添加创意（先选层）

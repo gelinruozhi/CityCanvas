@@ -23,8 +23,8 @@ function safeParseBounds(raw: string): Annotation["bounds"] | undefined {
 }
 
 interface ForkAnnotation {
-  lat: number;
-  lng: number;
+  x: number;
+  y: number;
   title: string;
   content: string;
   buildingType: string;
@@ -51,8 +51,8 @@ export function ForkButton({
     clearAll();
     annotations.forEach((a) => {
       addAnnotation({
-        lat: a.lat,
-        lng: a.lng,
+        x: a.x,
+        y: a.y,
         title: a.title,
         content: a.content,
         // 旧值（dining/study 等）经 LEGACY_TYPE_MAP normalize 到新类型

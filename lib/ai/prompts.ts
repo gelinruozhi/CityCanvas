@@ -89,38 +89,33 @@ interface EvaluatorInput {
     title: string;
     content: string;
     buildingType: string;
-    lat: number;
-    lng: number;
-    distanceFromCenter: number;
+    x: number;
+    y: number;
     shape?: "point" | "circle" | "rect";
     radius?: number;
     buildingName?: string;
     floor?: string;
   };
+  nearbyBuildings: Array<{ name: string; dist: number }>;
+  zone: string;
   nearbyAnnotations: Array<{
     title: string;
     buildingType: string;
     distance: number;
-  }>;
-  realPois: Array<{
-    name: string;
-    type: string;
-    distance: number;
-    address?: string;
   }>;
 }
 
 export function buildEvaluatorUserPrompt(input: EvaluatorInput): string {
   const a = input.annotation;
   const poiBlock =
-    input.realPois.length > 0
-      ? input.realPois
+    input.nearbyBuildings.length > 0
+      ? input.nearbyBuildings
           .map(
             (p, i) =>
-              `${i + 1}. 【${p.name}】 类型: ${p.type} · 距离: ${p.distance}m`
+              `${i + 1}. 【${p.name}】 距离: ${p.dist}m`
           )
           .join("\n")
-      : "（高德 POI 暂无返回，请按「POI 数据不足」分支处理）";
+      : "（周边暂无其他标注建筑）";
 
   const siblingsBlock =
     input.nearbyAnnotations.length > 0
@@ -139,8 +134,7 @@ export function buildEvaluatorUserPrompt(input: EvaluatorInput): string {
 - 类型：${a.buildingType}
 - 描述：${a.content}
 - 覆盖范围：${a.shape === "circle" ? `半径 ${a.radius}m 的圆形区域` : a.shape === "rect" ? "矩形区域" : "单个点位"}${a.floor ? ` · 室内 ${a.buildingName ?? ""} ${a.floor}` : ""}
-- 距校园几何中心约 ${a.distanceFromCenter}m（这是参考数字，**不能用它推方位**）
-- 原始坐标：${a.lng.toFixed(6)}, ${a.lat.toFixed(6)}
+- 校园位置：${input.zone}（画布坐标 x=${a.x.toFixed(0)}m, y=${a.y.toFixed(0)}m，原点在校园西南角）
 
 # ⭐ 周边真实建筑（高德 PlaceSearch，半径 250m，按距离排序）
 ${poiBlock}

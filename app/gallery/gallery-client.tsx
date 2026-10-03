@@ -18,8 +18,8 @@ interface RawCreation {
   createdAt: Date | string;
   user: { nickname: string };
   annotations: Array<{
-    lat: number;
-    lng: number;
+    x: number;
+    y: number;
     title: string;
     buildingType: string;
     aiScore: string | null;

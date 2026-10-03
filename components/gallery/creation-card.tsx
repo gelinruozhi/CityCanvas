@@ -11,6 +11,11 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getBuildingTypeMeta } from "@/lib/types";
+import {
+  CAMPUS_BUILDINGS,
+  CAMPUS_GREENS,
+  CAMPUS_ROADS,
+} from "@/lib/campus/map-data";
 import type { BuildingType } from "@/lib/types";
 
 interface CardCreation {
@@ -19,8 +24,8 @@ interface CardCreation {
   createdAt: Date | string;
   user: { nickname: string };
   annotations: Array<{
-    lat: number;
-    lng: number;
+    x: number;
+    y: number;
     title: string;
     buildingType: string;
     aiScore: string | null;
@@ -120,7 +125,6 @@ export function CreationCard({
         <div className="relative aspect-[21/9] overflow-hidden">
           <MiniMapPreview
             annotations={creation.annotations}
-            cardId={creation.id}
           />
 
           {/* 综合分大徽章 */}
@@ -253,34 +257,12 @@ export function CreationCard({
 
 function MiniMapPreview({
   annotations,
-  cardId,
 }: {
   annotations: CardCreation["annotations"];
-  cardId: string;
 }) {
-  if (annotations.length === 0) {
-    return (
-      <div className="h-full w-full bg-gradient-to-br from-[#1a1f3a] via-[#0f1729] to-[#0a0e1f]" />
-    );
-  }
-
-  const lngs = annotations.map((a) => a.lng);
-  const lats = annotations.map((a) => a.lat);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const padLng = Math.max((maxLng - minLng) * 0.3, 0.0008);
-  const padLat = Math.max((maxLat - minLat) * 0.3, 0.0008);
-
-  const projectX = (lng: number) =>
-    ((lng - minLng + padLng) / (maxLng - minLng + 2 * padLng)) * 100;
-  const projectY = (lat: number) =>
-    ((maxLat + padLat - lat) / (maxLat - minLat + 2 * padLat)) * 75;
-
   const points = annotations.map((a) => ({
-    x: projectX(a.lng),
-    y: projectY(a.lat),
+    x: a.x,
+    y: 1400 - a.y, // 校园 y 向北，SVG y 向下
     color: (() => {
       let score: number | null = null;
       try {
@@ -293,182 +275,62 @@ function MiniMapPreview({
     })(),
   }));
 
-  const seed = hashCode(cardId);
-  const buildings = generateBuildings(seed, 6);
-  const greens = generateGreens(seed, 3);
-  const gridId = `grid-${cardId.slice(0, 6)}`;
-  const roadId = `road-${cardId.slice(0, 6)}`;
-
   return (
-    <div className="relative h-full w-full bg-gradient-to-br from-[#161b2e] via-[#0e1426] to-[#06080f]">
+    <div className="relative h-full w-full bg-[#0d1a12]">
       <svg
         className="absolute inset-0 h-full w-full"
-        viewBox="0 0 100 75"
-        preserveAspectRatio="none"
+        viewBox="0 0 700 1400"
+        preserveAspectRatio="xMidYMid slice"
       >
-        <defs>
-          <pattern
-            id={gridId}
-            width="6"
-            height="6"
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 6 0 L 0 0 0 6"
-              fill="none"
-              stroke="rgba(255,255,255,0.04)"
-              strokeWidth="0.25"
-            />
-          </pattern>
-          <linearGradient id={roadId} x1="0" y1="0" x2="100" y2="0">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
-            <stop offset="50%" stopColor="rgba(255,255,255,0.18)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.08)" />
-          </linearGradient>
-        </defs>
-
-        <rect width="100" height="75" fill={`url(#${gridId})`} />
-
-        {greens.map((g, i) => (
-          <polygon
-            key={`g-${i}`}
-            points={g}
-            fill="rgba(34, 197, 94, 0.08)"
-            stroke="rgba(34, 197, 94, 0.18)"
-            strokeWidth="0.2"
-          />
+        <rect width={700} height={1400} fill="#0d1a12" />
+        {CAMPUS_GREENS.map((g, i) => (
+          <rect key={`g${i}`} x={g.x} y={1400 - g.y - g.h} width={g.w} height={g.h} fill="#16301f" rx={10} />
         ))}
-
-        <path
-          d={`M -2 ${30 + (seed % 10)} Q 25 ${28 - (seed % 8)} 50 ${
-            32 + ((seed >> 3) % 6)
-          } T 102 ${36 + ((seed >> 5) % 8)}`}
-          stroke={`url(#${roadId})`}
-          strokeWidth="1.4"
-          fill="none"
-        />
-        <path
-          d={`M -2 ${55 + ((seed >> 2) % 8)} L 102 ${52 + ((seed >> 4) % 6)}`}
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth="0.7"
-          fill="none"
-        />
-
-        {buildings.map((b, i) => (
-          <rect
-            key={`b-${i}`}
-            x={b.x}
-            y={b.y}
-            width={b.w}
-            height={b.h}
-            fill="rgba(255,255,255,0.06)"
-            stroke="rgba(255,255,255,0.12)"
-            strokeWidth="0.15"
-            rx="0.6"
-          />
-        ))}
-
-        {points.length > 1 && (
+        {CAMPUS_ROADS.map((r, i) => (
           <polyline
-            points={points
-              .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
-              .join(" ")}
-            stroke="rgba(251, 146, 60, 0.55)"
-            strokeWidth="0.5"
-            strokeDasharray="1 0.7"
+            key={`r${i}`}
+            points={r.pts.map(([x, y]) => `${x},${1400 - y}`).join(" ")}
             fill="none"
+            stroke="#2e3a33"
+            strokeWidth={r.width}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
-        )}
+        ))}
+        {CAMPUS_BUILDINGS.filter((b) => b.buildingType !== "field").map((b) => (
+          <rect
+            key={b.id}
+            x={b.x - b.size[0] / 2}
+            y={1400 - b.y - b.size[1] / 2}
+            width={b.size[0]}
+            height={b.size[1]}
+            rx={3}
+            fill="#1f2b24"
+            stroke="#3a4a3e"
+            strokeWidth={2}
+          />
+        ))}
+        {CAMPUS_BUILDINGS.filter((b) => b.buildingType === "field").map((b) => (
+          <ellipse
+            key={`f-${b.id}`}
+            cx={b.x}
+            cy={1400 - b.y}
+            rx={b.size[0] / 2}
+            ry={b.size[1] / 2}
+            fill="#1a3324"
+            stroke="#3f6148"
+            strokeWidth={3}
+          />
+        ))}
+        {points.map((p, i) => (
+          <circle key={`p${i}`} cx={p.x} cy={p.y} r={14} fill={p.color} stroke="#fff" strokeWidth={3} />
+        ))}
       </svg>
-
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/4 top-1/3 h-32 w-32 rounded-full bg-orange-500/15 blur-3xl" />
-        <div className="absolute right-1/4 bottom-1/3 h-32 w-32 rounded-full bg-sky-500/12 blur-3xl" />
-      </div>
-
-      {points.map((p, i) => (
-        <motion.div
-          key={i}
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{
-            delay: 0.1 + i * 0.04,
-            type: "spring",
-            stiffness: 280,
-            damping: 22,
-          }}
-          className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{
-            left: `${p.x.toFixed(2)}%`,
-            top: `${((p.y / 75) * 100).toFixed(2)}%`,
-          }}
-        >
-          <div
-            className="absolute -inset-1 rounded-full opacity-40"
-            style={{
-              background: `radial-gradient(circle, ${p.color}, transparent 70%)`,
-            }}
-          />
-          <div
-            className="relative h-2.5 w-2.5 rounded-full ring-2 ring-white/70"
-            style={{
-              background: p.color,
-              boxShadow: `0 0 10px ${p.color}, 0 0 3px ${p.color}`,
-            }}
-          />
-        </motion.div>
-      ))}
     </div>
   );
 }
 
-function hashCode(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h << 5) - h + s.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h);
-}
 
-function pseudoRand(seed: number, i: number): number {
-  const x = Math.sin(seed * 9301 + i * 49297) * 233280;
-  return x - Math.floor(x);
-}
 
-function generateBuildings(seed: number, count: number) {
-  const items: { x: string; y: string; w: string; h: string }[] = [];
-  for (let i = 0; i < count; i++) {
-    const r1 = pseudoRand(seed, i);
-    const r2 = pseudoRand(seed, i + 100);
-    const r3 = pseudoRand(seed, i + 200);
-    const r4 = pseudoRand(seed, i + 300);
-    items.push({
-      x: (8 + r1 * 80).toFixed(1),
-      y: (8 + r2 * 55).toFixed(1),
-      w: (4 + r3 * 6).toFixed(1),
-      h: (3 + r4 * 5).toFixed(1),
-    });
-  }
-  return items;
-}
 
-function generateGreens(seed: number, count: number): string[] {
-  const polys: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const cx = 15 + pseudoRand(seed, i + 500) * 70;
-    const cy = 10 + pseudoRand(seed, i + 600) * 55;
-    const radius = 5 + pseudoRand(seed, i + 700) * 6;
-    const points: string[] = [];
-    const sides = 5 + Math.floor(pseudoRand(seed, i + 800) * 3);
-    for (let j = 0; j < sides; j++) {
-      const angle = (j / sides) * Math.PI * 2;
-      const r = radius * (0.7 + pseudoRand(seed, i * 10 + j) * 0.6);
-      const px = (cx + Math.cos(angle) * r).toFixed(1);
-      const py = (cy + Math.sin(angle) * r).toFixed(1);
-      points.push(`${px},${py}`);
-    }
-    polys.push(points.join(" "));
-  }
-  return polys;
-}
+

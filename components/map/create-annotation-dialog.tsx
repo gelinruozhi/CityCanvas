@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
-import { searchNearbyPlaces, type NearbyPlace } from "@/lib/amap/place-search-client";
+import { nearbyBuildings } from "@/lib/campus/map-data";
 import { SHAPE_META } from "@/lib/types";
 import {
   BUILDING_TYPES,
@@ -56,8 +56,10 @@ export function CreateAnnotationDialog() {
   const [buildingType, setBuildingType] = useState<BuildingType>("other");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // 打开对话框时反查周边真实建筑，让用户知道"我在哪"（室内模式跳过）
-  const [nearby, setNearby] = useState<NearbyPlace[] | null>(null);
+  // 周边楼栋（画布坐标直接计算）
+  const nearby = pendingPosition
+    ? nearbyBuildings(pendingPosition.x, pendingPosition.y, 3)
+    : [];
 
   useEffect(() => {
     if (!pendingPosition) return;
@@ -65,18 +67,7 @@ export function CreateAnnotationDialog() {
     setIntent("build");
     setBuildingType("other");
     setContent("");
-    setNearby(null);
-    if (indoorFloor) return; // 室内：定位上下文用建筑名，不需要周边 POI
-    let cancelled = false;
-    searchNearbyPlaces(pendingPosition.lng, pendingPosition.lat, 250).then(
-      (places) => {
-        if (!cancelled) setNearby(places);
-      }
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [pendingPosition, indoorFloor]);
+  }, [pendingPosition]);
 
   const open = Boolean(pendingPosition);
 
@@ -94,8 +85,8 @@ export function CreateAnnotationDialog() {
     // 把意图作为前缀写进 content，让 AI 知道是"新建"还是"改造"
     const prefixed = `[${intent === "build" ? "新建" : "改造"}] ${content.trim()}`;
     addAnnotation({
-      lat: pendingPosition.lat,
-      lng: pendingPosition.lng,
+      x: pendingPosition.x,
+      y: pendingPosition.y,
       title: title.trim(),
       content: prefixed,
       buildingType,
@@ -161,24 +152,16 @@ export function CreateAnnotationDialog() {
                       覆盖约{" "}
                       {pendingPosition.shape === "circle"
                         ? Math.round(
-                            Math.PI *
-                              (pendingPosition.radius ?? 0) ** 2
+                            Math.PI * (pendingPosition.radius ?? 0) ** 2
                           ).toLocaleString()
                         : pendingPosition.bounds
                         ? Math.round(
                             Math.abs(
                               (pendingPosition.bounds.ne[0] -
                                 pendingPosition.bounds.sw[0]) *
-                                111320 *
-                                Math.cos(
-                                  (pendingPosition.lat * Math.PI) / 180
-                                )
-                            ) *
-                              Math.abs(
                                 (pendingPosition.bounds.ne[1] -
-                                  pendingPosition.bounds.sw[1]) *
-                                  111320
-                              )
+                                  pendingPosition.bounds.sw[1])
+                            )
                           ).toLocaleString()
                         : 0}{" "}
                       ㎡
@@ -199,27 +182,23 @@ export function CreateAnnotationDialog() {
                           <Navigation className="h-3 w-3" />
                           {nearby[0].name}
                           <span className="font-normal text-zinc-500">
-                            · 约{nearby[0].distance}m
+                            · 约{nearby[0].dist}m
                           </span>
                         </span>
                         {nearby.slice(1, 3).map((p) => (
                           <span key={p.name} className="text-zinc-400">
                             {p.name}
                             <span className="ml-0.5 text-zinc-600">
-                              · {p.distance}m
+                              · {p.dist}m
                             </span>
                           </span>
                         ))}
                       </div>
                     ) : (
                       <span className="text-xs text-zinc-500">
-                        周边是开阔区域，没有标志性建筑 · AI 会按中性环境评分
+                        校园开阔区域 · AI 会按中性环境评分
                       </span>
                     )}
-                    <div className="mt-1 font-mono text-[10px] text-zinc-600">
-                      {pendingPosition.lng.toFixed(5)},{" "}
-                      {pendingPosition.lat.toFixed(5)}
-                    </div>
                   </div>
                 </div>
               </>

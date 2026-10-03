@@ -1,19 +1,11 @@
 import { anthropic, API_STYLE, openaiChatComplete, MODEL_CHAIN } from "./anthropic";
 import { ANNOTATION_EVALUATOR_SYSTEM_PROMPT, buildEvaluatorUserPrompt } from "./prompts";
-import { searchNearbyPois } from "@/lib/amap/poi";
-import type { AIScore, Annotation, BuildingType } from "@/lib/types";
-
-export interface NearbyPlaceInput {
-  name: string;
-  type: string;
-  distance: number;
-  address?: string;
-}
+import type { AIScore, BuildingType } from "@/lib/types";
 
 interface EvaluateRequest {
   annotation: {
-    lat: number;
-    lng: number;
+    x: number;
+    y: number;
     title: string;
     content: string;
     buildingType: BuildingType;
@@ -23,28 +15,20 @@ interface EvaluateRequest {
     floor?: string;
   };
   siblings: Array<{
-    lat: number;
-    lng: number;
+    x: number;
+    y: number;
     title: string;
     buildingType: BuildingType;
   }>;
-  campusCenter?: { lng: number; lat: number } | null;
-  nearbyPlaces?: NearbyPlaceInput[];
+  nearbyBuildings?: Array<{ name: string; dist: number }>;
+  zone?: string;
 }
 
 function distanceMeters(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number }
+  a: { x: number; y: number },
+  b: { x: number; y: number }
 ): number {
-  const R = 6371000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const x =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
+  return Math.round(Math.hypot(b.x - a.x, b.y - a.y));
 }
 
 function clamp(v: number, min: number, max: number) {
@@ -165,19 +149,9 @@ async function callClaudeWithFallback(
 export async function evaluateAnnotation(
   req: EvaluateRequest
 ): Promise<AIScore> {
-  const { annotation, siblings, campusCenter, nearbyPlaces } = req;
+  const { annotation, siblings, nearbyBuildings, zone } = req;
 
-  if (!campusCenter) {
-    throw new Error("缺少校园中心坐标：前端必须先完成 PlaceSearch 定位再触发评估");
-  }
-
-  // 距校园中心的纯数字距离（不再翻译成"南部/北部"等抽象方位）
-  const distanceFromCenter = distanceMeters(
-    { lat: campusCenter.lat, lng: campusCenter.lng },
-    { lat: annotation.lat, lng: annotation.lng }
-  );
-
-  // 用户已创建的其他标点：只给"距离 X 米"，不给方位词
+  // 用户已创建的其他标点：画布坐标距离
   const nearbyAnnotations = siblings
     .filter((s) => s.title !== annotation.title)
     .map((s) => ({
@@ -189,20 +163,11 @@ export async function evaluateAnnotation(
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 10);
 
-  // 周边真实建筑：优先用前端 PlaceSearch 的结果；为空时回退到后端 REST API
-  let realPois: NearbyPlaceInput[] = Array.isArray(nearbyPlaces) ? nearbyPlaces : [];
-  if (realPois.length === 0) {
-    const restPois = await searchNearbyPois(annotation.lng, annotation.lat, 250);
-    realPois = restPois;
-  }
-
   const userPrompt = buildEvaluatorUserPrompt({
-    annotation: {
-      ...annotation,
-      distanceFromCenter,
-    },
+    annotation: { ...annotation },
     nearbyAnnotations,
-    realPois,
+    nearbyBuildings: nearbyBuildings ?? [],
+    zone: zone ?? "",
   });
 
   const text = await callClaudeWithFallback(
@@ -215,4 +180,3 @@ export async function evaluateAnnotation(
   return normalizeScore(parsed);
 }
 
-export type { Annotation };

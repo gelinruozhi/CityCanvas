@@ -22,10 +22,10 @@ services:
       - "3000"
     networks:
       - citycanvas-net
-    # 首次启动自动建表（幂等），失败立即退出便于日志排查，由 restart 拉起重试
+    # 首次启动自动建表（幂等）；schema 破坏性变更时接受数据丢失（演示项目）
     command: >
       sh -c "
-      prisma db push --schema=./prisma/schema.prisma --skip-generate &&
+      prisma db push --schema=./prisma/schema.prisma --skip-generate --accept-data-loss &&
       node server.js
       "
 

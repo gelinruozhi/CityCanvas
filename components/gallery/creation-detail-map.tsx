@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { getBuildingTypeMeta } from "@/lib/types";
 import type { AIScore, BuildingType } from "@/lib/types";
 
-const ReadonlyMap = dynamic(
-  () => import("@/components/map/readonly-map").then((m) => m.ReadonlyMap),
+const CampusReadonly = dynamic(
+  () => import("@/components/map/campus-readonly").then((m) => m.CampusReadonly),
   {
     ssr: false,
     loading: () => (
@@ -22,8 +22,8 @@ const ReadonlyMap = dynamic(
 
 export interface DetailAnnotation {
   id: string;
-  lat: number;
-  lng: number;
+  x: number;
+  y: number;
   title: string;
   content: string;
   buildingType: string;
@@ -51,9 +51,9 @@ export function CreationDetailMap({
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-3xl border border-white/10 bg-zinc-950">
-      <ReadonlyMap
+      <CampusReadonly
         annotations={annotations}
-        onSelect={(a) => setSelectedId(a.id)}
+        onSelect={(a) => setSelectedId(a.id === "__close__" ? null : a.id)}
         selectedId={selectedId}
       />
 

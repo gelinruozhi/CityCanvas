@@ -4,12 +4,9 @@ import { motion } from "framer-motion";
 import {
   Trash2,
   Rocket,
-  Sun,
-  Moon,
   Home,
   Undo2,
   Redo2,
-  Satellite,
   MapPin,
   Circle,
   Square,
@@ -27,8 +24,6 @@ import {
 
 export function FabControls() {
   const annotations = useAnnotationStore((s) => s.annotations);
-  const isDarkMap = useAnnotationStore((s) => s.isDarkMap);
-  const isSatellite = useAnnotationStore((s) => s.isSatellite);
   const drawTool = useAnnotationStore((s) => s.drawTool);
   const setDrawTool = useAnnotationStore((s) => s.setDrawTool);
   const selectedBuilding = useAnnotationStore((s) => s.selectedBuilding);
@@ -38,8 +33,6 @@ export function FabControls() {
   const undo = useAnnotationStore((s) => s.undo);
   const redo = useAnnotationStore((s) => s.redo);
   const clearAll = useAnnotationStore((s) => s.clearAll);
-  const toggleMapTheme = useAnnotationStore((s) => s.toggleMapTheme);
-  const toggleSatellite = useAnnotationStore((s) => s.toggleSatellite);
   const openPublishDialog = useAnnotationStore((s) => s.openPublishDialog);
 
   const drawing = drawTool !== "point";
@@ -114,21 +107,6 @@ export function FabControls() {
           <Link href="/">
             <Home className="h-5 w-5" />
           </Link>
-        </FabButton>
-
-        <FabButton
-          tooltip={isDarkMap ? "切换日间地图" : "切换夜间地图"}
-          onClick={toggleMapTheme}
-        >
-          {isDarkMap ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </FabButton>
-
-        <FabButton
-          tooltip={isSatellite ? "切换矢量地图" : "切换卫星实景地图"}
-          onClick={toggleSatellite}
-          active={isSatellite}
-        >
-          <Satellite className="h-5 w-5" />
         </FabButton>
 
         <FabButton

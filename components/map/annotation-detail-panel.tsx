@@ -138,7 +138,7 @@ export function AnnotationDetailPanel() {
             <div className="rounded-xl border border-white/5 bg-white/5 p-3">
               <div className="text-xs text-zinc-500">坐标</div>
               <div className="mt-1 font-mono text-xs text-zinc-300">
-                {annotation.lng.toFixed(6)}, {annotation.lat.toFixed(6)}
+                画布 x={annotation.x.toFixed(0)}m, y={annotation.y.toFixed(0)}m
               </div>
             </div>
 

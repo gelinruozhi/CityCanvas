@@ -12,8 +12,8 @@ export default async function GalleryPage() {
       user: true,
       annotations: {
         select: {
-          lat: true,
-          lng: true,
+          x: true,
+          y: true,
           title: true,
           buildingType: true,
           aiScore: true,

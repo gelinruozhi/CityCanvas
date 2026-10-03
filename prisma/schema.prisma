@@ -43,8 +43,8 @@ model Creation {
 model Annotation {
   id           String   @id @default(cuid())
   creationId   String
-  lat          Float
-  lng          Float
+  x            Float
+  y            Float
   title        String
   content      String
   buildingType String   // dining | leisure | study | sports | green | other

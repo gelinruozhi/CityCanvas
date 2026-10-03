@@ -153,8 +153,8 @@ export interface AIScore {
 export type AnnotationShape = "point" | "circle" | "rect";
 
 export interface ShapeBounds {
-  sw: [number, number]; // 西南角 [lng, lat]
-  ne: [number, number]; // 东北角 [lng, lat]
+  sw: [number, number]; // 西南角 [x, y]（校园米坐标）
+  ne: [number, number]; // 东北角 [x, y]
 }
 
 export const SHAPE_META: Record<
@@ -168,8 +168,9 @@ export const SHAPE_META: Record<
 
 export interface Annotation {
   id: string;
-  lat: number;
-  lng: number;
+  /** 校园画布坐标（米）：原点在校园西南角，x 向东 / y 向北 */
+  x: number;
+  y: number;
   title: string;
   content: string;
   buildingType: BuildingType;
@@ -182,16 +183,14 @@ export interface Annotation {
   createdAt: number;
 }
 
-/** 可交互建筑信息（从高德 POI 动态生成足迹） */
+/** 可交互建筑（校园画布定义） */
 export interface CampusBuilding {
   id: string;
   name: string;
   buildingType: BuildingType;
-  center: { lng: number; lat: number };
-  footprint: {
-    sw: [number, number];
-    ne: [number, number];
-  };
+  x: number;
+  y: number;
+  size: [number, number];
   floorCount: number;
 }
 
