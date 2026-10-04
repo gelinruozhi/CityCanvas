@@ -69,8 +69,8 @@ export function CampusCanvas() {
     const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
     ro.observe(el);
     setSize({ w: el.clientWidth, h: el.clientHeight });
-    const s = Math.min(el.clientWidth / 820, el.clientHeight / 1060);
-    viewRef.current = { cx: 290, cy: 780, s: Math.max(0.95, s) };
+    const s = Math.min(el.clientWidth / 700, el.clientHeight / 850);
+    viewRef.current = { cx: 230, cy: 430, s: Math.max(1.05, s) };
     rerender();
     return () => ro.disconnect();
   }, [rerender]);
@@ -85,14 +85,14 @@ export function CampusCanvas() {
   const proj = useCallback(
     (x: number, y: number): [number, number] => [
       size.w / 2 + (x - view.cx) * view.s,
-      size.h / 2 - (y - view.cy) * view.s,
+      size.h / 2 + (y - view.cy) * view.s,
     ],
     [size.w, size.h, view.cx, view.cy, view.s]
   );
   const unproj = useCallback(
     (px: number, py: number): [number, number] => [
       (px - size.w / 2) / view.s + view.cx,
-      view.cy - (py - size.h / 2) / view.s,
+      (py - size.h / 2) / view.s + view.cy,
     ],
     [size.w, size.h, view.cx, view.cy, view.s]
   );
@@ -133,7 +133,7 @@ export function CampusCanvas() {
     const [wx, wy] = unproj(e.clientX, e.clientY);
     view.s = next;
     view.cx = wx - (e.clientX - size.w / 2) / view.s;
-    view.cy = wy + (e.clientY - size.h / 2) / view.s;
+    view.cy = wy - (e.clientY - size.h / 2) / view.s;
     rerender();
   };
 
