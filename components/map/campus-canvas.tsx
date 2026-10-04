@@ -17,29 +17,14 @@ function scoreToColor(score: number | null | undefined): string {
   if (score == null) return "#e2622b";
   const clamped = Math.max(0, Math.min(100, score));
   const hue = Math.round((clamped / 100) * 120);
-  return `hsl(${hue}, 72%, 46%)`;
+  return `hsl(${hue}, 65%, 42%)`;
 }
 
-const C = {
-  grass: "#a9cd9f",
-  road: "#fdfbf4",
-  roadEdge: "#d9d2bd",
-  roadLine: "#e8b84b",
-  water: "#8fc7e8",
-  waterEdge: "#5fa8d3",
-  buildingBody: "#f6ecd8",
-  buildingEdge: "#9a8464",
-  buildingShadow: "rgba(90,70,40,0.28)",
-  label: "#4a3b28",
-  track: "#e8865a",
-  field: "#7cbf6e",
-};
-
-/** 校园画布编辑器：亮色手绘风自绘 SVG（米坐标系），pan/zoom + 绘图 + 楼栋交互 */
+/** 校园画布编辑器 —— 按卡通平面图 1:1 自绘（亮色手绘风），pan/zoom + 绘图 + 楼栋交互 */
 export function CampusCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 1280, h: 720 });
-  const viewRef = useRef({ cx: 350, cy: 700, s: 1.15 });
+  const viewRef = useRef({ cx: 540, cy: 750, s: 0.85 });
   const [, forceRender] = useState(0);
   const rerender = useCallback(() => forceRender((v) => v + 1), []);
 
@@ -69,11 +54,8 @@ export function CampusCanvas() {
     const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
     ro.observe(el);
     setSize({ w: el.clientWidth, h: el.clientHeight });
-    const s = Math.min(el.clientWidth / 700, el.clientHeight / 850);
-    viewRef.current = { cx: 230, cy: 430, s: Math.max(1.05, s) };
-    rerender();
     return () => ro.disconnect();
-  }, [rerender]);
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -97,6 +79,15 @@ export function CampusCanvas() {
     [size.w, size.h, view.cx, view.cy, view.s]
   );
 
+  // 初始 fit 全画布
+  useEffect(() => {
+    if (size.w < 100) return;
+    const s = Math.min(size.w / (CAMPUS_WIDTH + 120), size.h / (CAMPUS_HEIGHT + 120));
+    viewRef.current = { cx: CAMPUS_WIDTH / 2, cy: CAMPUS_HEIGHT / 2, s };
+    rerender();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size.w, size.h]);
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     panRef.current = { sx: e.clientX, sy: e.clientY, cx: view.cx, cy: view.cy, moved: false };
@@ -108,7 +99,7 @@ export function CampusCanvas() {
       const dy = e.clientY - pan.sy;
       if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true;
       view.cx = pan.cx - dx / view.s;
-      view.cy = pan.cy + dy / view.s;
+      view.cy = pan.cy - dy / view.s;
       rerender();
       return;
     }
@@ -129,7 +120,7 @@ export function CampusCanvas() {
   const onPointerUp = () => (panRef.current = null);
   const onWheel = (e: React.WheelEvent) => {
     const factor = Math.pow(1.1, -e.deltaY / 100);
-    const next = Math.min(8, Math.max(0.25, view.s * factor));
+    const next = Math.min(6, Math.max(0.3, view.s * factor));
     const [wx, wy] = unproj(e.clientX, e.clientY);
     view.s = next;
     view.cx = wx - (e.clientX - size.w / 2) / view.s;
@@ -164,8 +155,8 @@ export function CampusCanvas() {
     }
 
     const hit = CAMPUS_BUILDINGS.find((b) => {
-      const hw = b.size[0] / 2 + 8;
-      const hh = b.size[1] / 2 + 8;
+      const hw = b.size[0] / 2 + 6;
+      const hh = b.size[1] / 2 + 6;
       return Math.abs(x - b.x) <= hw && Math.abs(y - b.y) <= hh;
     });
     if (hit) {
@@ -175,19 +166,17 @@ export function CampusCanvas() {
     openCreateDialog(x, y);
   };
 
-  const labelVisible = view.s > 0.75;
-  const shortName = (n: string) =>
-    n
-      .replace(/一号/, "1号")
-      .replace(/二号/, "2号")
-      .replace(/三号/, "3号")
-      .replace(/四号/, "4号")
-      .replace(/五号/, "5号")
-      .replace(/六号/, "6号")
-      .replace(/七号/, "7号")
-      .replace(/八号/, "8号")
-      .replace(/九号/, "9号")
-      .replace(/学生公寓/, "公寓");
+  // ===== 树丛装饰（确定性伪随机） =====
+  const trees: Array<[number, number, number]> = [];
+  for (const g of CAMPUS_GREENS) {
+    for (let i = 0; i < 5; i++) {
+      const tx = g.x + g.w * (0.2 + 0.6 * ((i * 0.37) % 1));
+      const ty = g.y + g.h * (0.25 + 0.55 * ((i * 0.61) % 1));
+      trees.push([tx, ty, 9 + ((i * 7) % 5)]);
+    }
+  }
+
+  const labelVisible = view.s > 0.4;
 
   return (
     <div
@@ -202,91 +191,85 @@ export function CampusCanvas() {
     >
       <svg width={size.w} height={size.h} className="block">
         <defs>
-          <pattern id="grass-tex" width="26" height="26" patternUnits="userSpaceOnUse">
-            <circle cx="6" cy="8" r="1.1" fill="#8fbb84" opacity={0.5} />
-            <circle cx="19" cy="17" r="1.4" fill="#83b078" opacity={0.45} />
-            <circle cx="13" cy="23" r="0.9" fill="#9ac78f" opacity={0.5} />
+          <pattern id="grass-tex" width="30" height="30" patternUnits="userSpaceOnUse">
+            <circle cx="7" cy="9" r="1.2" fill="#7fb374" opacity={0.5} />
+            <circle cx="21" cy="19" r="1.5" fill="#71a966" opacity={0.45} />
+            <circle cx="15" cy="26" r="1" fill="#88c07c" opacity={0.5} />
           </pattern>
         </defs>
 
-        <rect width={size.w} height={size.h} fill={C.grass} />
+        {/* 草地底 */}
+        <rect width={size.w} height={size.h} fill="#9ec994" />
         <rect width={size.w} height={size.h} fill="url(#grass-tex)" />
 
+        {/* 校园地块边界 */}
         {(() => {
-          const [x1, y1] = proj(0, CAMPUS_HEIGHT);
-          const [x2, y2] = proj(CAMPUS_WIDTH, 0);
-          return (
-            <>
-              <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#b4d6a8" stroke="#7ba36f" strokeWidth={2.5} rx={6} />
-              {CAMPUS_GREENS.map((g, i) => {
-                const [gx, gy] = proj(g.x, g.y + g.h);
-                return (
-                  <g key={i}>
-                    <rect x={gx} y={gy} width={g.w * view.s} height={g.h * view.s} fill="#9cc791" rx={14} />
-                    {[0.3, 0.62].map((fx, fi) => (
-                      <g key={fi}>
-                        <circle cx={gx + g.w * view.s * fx} cy={gy + g.h * view.s * (0.4 + fi * 0.3)} r={7 * Math.min(view.s, 1.4)} fill="#6ba862" />
-                        <circle cx={gx + g.w * view.s * fx + 2} cy={gy + g.h * view.s * (0.4 + fi * 0.3) - 2} r={5 * Math.min(view.s, 1.4)} fill="#7fb974" />
-                      </g>
-                    ))}
-                  </g>
-                );
-              })}
-            </>
-          );
+          const [x1, y1] = proj(20, 30);
+          const [x2, y2] = proj(CAMPUS_WIDTH - 20, CAMPUS_HEIGHT - 20);
+          return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#a5cf9a" stroke="#7ba36f" strokeWidth={3} rx={10} />;
         })()}
 
+        {/* 绿地块 */}
+        {CAMPUS_GREENS.map((g, i) => {
+          const [gx, gy] = proj(g.x, g.y);
+          return <rect key={i} x={gx} y={gy} width={g.w * view.s} height={g.h * view.s} fill="#8cc282" rx={20} opacity={0.9} />;
+        })}
+
+        {/* 湖 */}
         <ellipse
           cx={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[0]}
           cy={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[1]}
           rx={CAMPUS_LAKE.rx * view.s}
           ry={CAMPUS_LAKE.ry * view.s}
-          fill={C.water}
-          stroke={C.waterEdge}
-          strokeWidth={2.5}
+          fill="#7cc3e8"
+          stroke="#4d9fd0"
+          strokeWidth={3}
         />
         <ellipse
-          cx={proj(CAMPUS_LAKE.x - 8, CAMPUS_LAKE.y + 4)[0]}
-          cy={proj(CAMPUS_LAKE.x - 8, CAMPUS_LAKE.y + 4)[1]}
-          rx={CAMPUS_LAKE.rx * 0.55 * view.s}
-          ry={CAMPUS_LAKE.ry * 0.45 * view.s}
-          fill="#a8d4ef"
-          opacity={0.8}
+          cx={proj(CAMPUS_LAKE.x - 12, CAMPUS_LAKE.y - 6)[0]}
+          cy={proj(CAMPUS_LAKE.x - 12, CAMPUS_LAKE.y - 6)[1]}
+          rx={CAMPUS_LAKE.rx * 0.5 * view.s}
+          ry={CAMPUS_LAKE.ry * 0.4 * view.s}
+          fill="#a5d8f2"
         />
+        {labelVisible && (
+          <text
+            x={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[0]}
+            y={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[1] + 5}
+            textAnchor="middle"
+            className="pointer-events-none select-none"
+            style={{ fontSize: 13, fontWeight: 700, fill: "#1a5276", paintOrder: "stroke", stroke: "#d6ecf8", strokeWidth: 3 }}
+          >
+            景观湖
+          </text>
+        )}
 
+        {/* 道路：灰白路带 + 边 */}
         {CAMPUS_ROADS.map((r, i) => (
           <g key={i}>
             <polyline
               points={r.pts.map(([x, y]) => proj(x, y).join(",")).join(" ")}
               fill="none"
-              stroke={C.roadEdge}
-              strokeWidth={(r.width + 3) * view.s}
+              stroke="#c8c4b8"
+              strokeWidth={(r.width + 4) * view.s}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
             <polyline
               points={r.pts.map(([x, y]) => proj(x, y).join(",")).join(" ")}
               fill="none"
-              stroke={C.road}
+              stroke="#f2efe6"
               strokeWidth={r.width * view.s}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            <polyline
-              points={r.pts.map(([x, y]) => proj(x, y).join(",")).join(" ")}
-              fill="none"
-              stroke={C.roadLine}
-              strokeWidth={1.2}
-              strokeDasharray={`${6 * view.s} ${5 * view.s}`}
-              opacity={0.85}
-            />
           </g>
         ))}
 
+        {/* 运动场：橙红跑道 + 绿茵 */}
         {CAMPUS_BUILDINGS.filter((b) => b.buildingType === "field").map((b) => {
           const [cx, cy] = proj(b.x, b.y);
           const sel = selectedBuilding?.id === b.id;
-          void 0;
           return (
             <g key={b.id} onClick={() => selectBuilding(b)} className="cursor-pointer">
               <ellipse
@@ -294,24 +277,26 @@ export function CampusCanvas() {
                 cy={cy}
                 rx={(b.size[0] / 2) * view.s}
                 ry={(b.size[1] / 2) * view.s}
-                fill={C.track}
-                stroke={sel ? "#e2622b" : "#c96a3e"}
-                strokeWidth={sel ? 3 : 2}
+                fill="#f0b26a"
+                stroke={sel ? "#e2622b" : "#d98f4e"}
+                strokeWidth={sel ? 4 : 2.5}
               />
               <ellipse
                 cx={cx}
                 cy={cy}
-                rx={Math.max(0, (b.size[0] / 2 - 7) * view.s)}
-                ry={Math.max(0, (b.size[1] / 2 - 6) * view.s)}
-                fill={C.field}
+                rx={Math.max(0, (b.size[0] / 2 - 12) * view.s)}
+                ry={Math.max(0, (b.size[1] / 2 - 9) * view.s)}
+                fill="#8bc98a"
+                stroke="#5da85c"
+                strokeWidth={1.5}
               />
               {labelVisible && (
                 <text
                   x={cx}
-                  y={cy + 4}
+                  y={cy + 5}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  style={{ fontSize: 11, fontWeight: 700, fill: "#3d5c33", paintOrder: "stroke", stroke: "#fff", strokeWidth: 2.5 }}
+                  style={{ fontSize: 13, fontWeight: 700, fill: "#2d5a2a", paintOrder: "stroke", stroke: "#eaf5df", strokeWidth: 3 }}
                 >
                   {b.name}
                 </text>
@@ -320,14 +305,28 @@ export function CampusCanvas() {
           );
         })}
 
+        {/* 树丛 */}
+        {trees.map(([tx, ty, r], i) => {
+          const [px, py] = proj(tx, ty);
+          if (px < -20 || px > size.w + 20 || py < -20 || py > size.h + 20) return null;
+          return (
+            <g key={`t${i}`} className="pointer-events-none">
+              <circle cx={px} cy={py} r={r * view.s} fill="#5da85c" />
+              <circle cx={px - r * view.s * 0.25} cy={py - r * view.s * 0.25} r={r * 0.7 * view.s} fill="#72b86e" />
+            </g>
+          );
+        })}
+
+        {/* 楼栋：立体楼块 + 楼内标签 */}
         {CAMPUS_BUILDINGS.filter((b) => b.buildingType !== "field").map((b) => {
           const sel = selectedBuilding?.id === b.id;
           const hov = hoverBuilding === b.id;
           const [cx, cy] = proj(b.x, b.y);
           const w = b.size[0] * view.s;
           const h = b.size[1] * view.s;
-          const bodyFill = sel ? "#ffd9a8" : hov ? "#fdf3dd" : C.buildingBody;
-          const edge = sel ? "#e2622b" : C.buildingEdge;
+          const depth = Math.max(4, 7 * Math.min(view.s, 1.2));
+          const bodyFill = sel ? "#fcd9a0" : hov ? "#fdf0d2" : "#f5e7c8";
+          const edge = sel ? "#c2410c" : "#a8895f";
           return (
             <g
               key={b.id}
@@ -340,61 +339,81 @@ export function CampusCanvas() {
               onPointerLeave={() => setHoverBuilding(null)}
               className="cursor-pointer"
             >
-              <rect x={cx - w / 2 + 4} y={cy - h / 2 + 6} width={w} height={h} rx={5} fill={C.buildingShadow} />
+              {/* 立体侧面 */}
+              <path
+                d={`M${cx - w / 2},${cy - h / 2 + depth} L${cx + w / 2},${cy - h / 2 + depth} L${cx + w / 2},${cy + h / 2 + depth} L${cx - w / 2},${cy + h / 2 + depth} Z`}
+                fill="#c9a96e"
+                stroke="#a8895f"
+                strokeWidth={1}
+              />
+              {/* 顶面 */}
               <rect
                 x={cx - w / 2}
                 y={cy - h / 2}
                 width={w}
                 height={h}
-                rx={5}
+                rx={3}
                 fill={bodyFill}
                 stroke={edge}
-                strokeWidth={sel ? 2.6 : hov ? 2 : 1.5}
+                strokeWidth={sel ? 3 : hov ? 2.2 : 1.6}
               />
-              {view.s > 0.9 &&
-                Array.from({ length: Math.min(b.floorCount, 6) - 1 }, (_, i) => (
+              {/* 顶面高光线 */}
+              {view.s > 0.55 &&
+                Array.from({ length: Math.min(b.floorCount, 5) }, (_, i) => (
                   <line
                     key={i}
-                    x1={cx - w / 2 + 4}
-                    y1={cy - h / 2 + ((i + 1) * h) / Math.min(b.floorCount, 6)}
-                    x2={cx + w / 2 - 4}
-                    y2={cy - h / 2 + ((i + 1) * h) / Math.min(b.floorCount, 6)}
-                    stroke={edge}
-                    strokeOpacity={0.35}
+                    x1={cx - w / 2 + 5}
+                    y1={cy - h / 2 + 5 + ((i * (h - 8)) / Math.min(b.floorCount, 5))}
+                    x2={cx + w / 2 - 5}
+                    y2={cy - h / 2 + 5 + ((i * (h - 8)) / Math.min(b.floorCount, 5))}
+                    stroke="#fff"
+                    strokeOpacity={0.5}
                   />
                 ))}
+              {/* 楼名（楼内，白描边深棕字） */}
               {labelVisible && (
                 <text
                   x={cx}
-                  y={cy + h / 2 + 13}
+                  y={cy + 5}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
                   style={{
-                    fontSize: 11.5,
+                    fontSize: Math.max(11, Math.min(16, 13 * Math.min(view.s, 1.1))),
                     fontWeight: 700,
-                    fill: C.label,
+                    fill: "#5a4630",
                     paintOrder: "stroke",
-                    stroke: "#fdfbf4",
+                    stroke: "#fdf6e3",
                     strokeWidth: 3.5,
                   }}
                 >
-                  {shortName(b.name)}
+                  {b.name}
                 </text>
               )}
+              {/* 选中脉冲 */}
               {sel && (
-                <circle cx={cx} cy={cy} r={Math.max(w, h) * 0.7} fill="none" stroke="#e2622b" strokeWidth={2}>
-                  <animate attributeName="r" values={`${Math.max(w, h) * 0.5};${Math.max(w, h) * 0.9}`} dur="1.6s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.9;0" dur="1.6s" repeatCount="indefinite" />
-                </circle>
+                <rect
+                  x={cx - w / 2 - 6}
+                  y={cy - h / 2 - 6}
+                  width={w + 12}
+                  height={h + 12}
+                  rx={8}
+                  fill="none"
+                  stroke="#e2622b"
+                  strokeWidth={2.5}
+                >
+                  <animate attributeName="opacity" values="1;0.3;1" dur="1.6s" repeatCount="indefinite" />
+                </rect>
               )}
             </g>
           );
         })}
 
+        {/* 标注 */}
         {annotations.filter((a) => a.shape === "circle").map((a) => renderShapeAnnotation(a, a.id === selectedId))}
         {annotations.filter((a) => a.shape === "rect").map((a) => renderRectAnnotation(a, a.id === selectedId))}
         {annotations.filter((a) => a.shape === "point").map((a) => renderPointAnnotation(a, a.id === selectedId))}
 
+        {/* 待创建预览 */}
         {pendingPosition && pendingPosition.shape !== "circle" && pendingPosition.shape !== "rect" &&
           renderPendingPoint(pendingPosition.x, pendingPosition.y)}
         {pendingPosition?.shape === "circle" && pendingPosition.radius &&
@@ -402,8 +421,8 @@ export function CampusCanvas() {
             const [cx, cy] = proj(pendingPosition.x, pendingPosition.y);
             return (
               <g className="pointer-events-none">
-                <circle cx={cx} cy={cy} r={pendingPosition.radius * view.s} fill="#e2622b1f" stroke="#e2622b" strokeWidth={2.5} strokeDasharray="7 5" />
-                <circle cx={cx} cy={cy} r={5} fill="#e2622b" stroke="#fff" strokeWidth={2} />
+                <circle cx={cx} cy={cy} r={pendingPosition.radius * view.s} fill="#e2622b26" stroke="#c2410c" strokeWidth={3} strokeDasharray="8 5" />
+                <circle cx={cx} cy={cy} r={6} fill="#c2410c" stroke="#fff" strokeWidth={2.5} />
               </g>
             );
           })()}
@@ -413,8 +432,8 @@ export function CampusCanvas() {
             const [x2, y2] = proj(pendingPosition.bounds.ne[0], pendingPosition.bounds.sw[1]);
             return (
               <g className="pointer-events-none">
-                <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#e2622b1f" stroke="#e2622b" strokeWidth={2.5} strokeDasharray="7 5" />
-                <circle cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={5} fill="#e2622b" stroke="#fff" strokeWidth={2} />
+                <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#e2622b26" stroke="#c2410c" strokeWidth={3} strokeDasharray="8 5" />
+                <circle cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={6} fill="#c2410c" stroke="#fff" strokeWidth={2.5} />
               </g>
             );
           })()}
@@ -423,7 +442,7 @@ export function CampusCanvas() {
             const [cx, cy] = proj(drawPreview.x, drawPreview.y);
             return (
               <g className="pointer-events-none">
-                <circle cx={cx} cy={cy} r={drawPreview.r * view.s} fill="#e2622b26" stroke="#e2622b" strokeWidth={2.5} strokeDasharray="7 5" />
+                <circle cx={cx} cy={cy} r={drawPreview.r * view.s} fill="#e2622b30" stroke="#c2410c" strokeWidth={3} strokeDasharray="8 5" />
               </g>
             );
           })()}
@@ -433,7 +452,7 @@ export function CampusCanvas() {
             const [x2, y2] = proj(drawPreview.ne[0], drawPreview.sw[1]);
             return (
               <g className="pointer-events-none">
-                <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#e2622b26" stroke="#e2622b" strokeWidth={2.5} strokeDasharray="7 5" />
+                <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#e2622b30" stroke="#c2410c" strokeWidth={3} strokeDasharray="8 5" />
               </g>
             );
           })()}
@@ -441,34 +460,33 @@ export function CampusCanvas() {
     </div>
   );
 
-
   function renderShapeAnnotation(a: Annotation, selected: boolean) {
-    const color = a.aiScore ? scoreToColor(a.aiScore.overallScore) : "#e2622b";
+    const color = a.aiScore ? scoreToColor(a.aiScore.overallScore) : "#c2410c";
     const [cx, cy] = proj(a.x, a.y);
     return (
       <g key={a.id} onClick={(e) => { e.stopPropagation(); if (!panRef.current?.moved) selectAnnotation(a.id); }} className="cursor-pointer">
-        <circle cx={cx} cy={cy} r={(a.radius ?? 60) * view.s} fill={`${color}40`} stroke={color} strokeWidth={selected ? 3.5 : 2.5} strokeOpacity={0.95} />
-        <circle cx={cx} cy={cy} r={5} fill={color} stroke="#fff" strokeWidth={2} />
+        <circle cx={cx} cy={cy} r={(a.radius ?? 60) * view.s} fill={`${color}45`} stroke={color} strokeWidth={selected ? 4 : 3} strokeOpacity={0.95} />
+        <circle cx={cx} cy={cy} r={6} fill={color} stroke="#fff" strokeWidth={2.5} />
       </g>
     );
   }
 
   function renderRectAnnotation(a: Annotation, selected: boolean) {
-    const color = a.aiScore ? scoreToColor(a.aiScore.overallScore) : "#e2622b";
+    const color = a.aiScore ? scoreToColor(a.aiScore.overallScore) : "#c2410c";
     if (!a.bounds) return null;
     const [x1, y1] = proj(a.bounds.sw[0], a.bounds.ne[1]);
     const [x2, y2] = proj(a.bounds.ne[0], a.bounds.sw[1]);
     return (
       <g key={a.id} onClick={(e) => { e.stopPropagation(); if (!panRef.current?.moved) selectAnnotation(a.id); }} className="cursor-pointer">
-        <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill={`${color}40`} stroke={color} strokeWidth={selected ? 3.5 : 2.5} strokeOpacity={0.95} />
-        <circle cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={5} fill={color} stroke="#fff" strokeWidth={2} />
+        <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill={`${color}45`} stroke={color} strokeWidth={selected ? 4 : 3} strokeOpacity={0.95} />
+        <circle cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={6} fill={color} stroke="#fff" strokeWidth={2.5} />
       </g>
     );
   }
 
   function renderPointAnnotation(a: Annotation, selected: boolean) {
     const meta = getBuildingTypeMeta(a.buildingType);
-    const color = a.aiScore ? scoreToColor(a.aiScore.overallScore) : "#e2622b";
+    const color = a.aiScore ? scoreToColor(a.aiScore.overallScore) : "#c2410c";
     const [px, py] = proj(a.x, a.y);
     const scale = selected ? 1.18 : 1;
     return (
@@ -478,14 +496,14 @@ export function CampusCanvas() {
         className="cursor-pointer"
         transform={`translate(${px},${py}) scale(${scale})`}
       >
-        <ellipse cx={0} cy={2} rx={9} ry={3.5} fill="rgba(0,0,0,0.25)" />
-        <path d="M0,0 C-9,-12 -12,-18 -12,-24 A12,12 0 1,1 12,-24 C12,-18 9,-12 0,0 Z" fill={color} stroke="#fff" strokeWidth={2} filter="drop-shadow(0 2px 4px rgba(0,0,0,.35))" />
-        <circle cx={0} cy={-24} r={6.5} fill="#fff" />
-        <text x={0} y={-20} textAnchor="middle" fontSize={9.5} fontWeight={700} fill={color}>
+        <ellipse cx={0} cy={2} rx={10} ry={4} fill="rgba(0,0,0,0.28)" />
+        <path d="M0,0 C-10,-13 -13,-19 -13,-26 A13,13 0 1,1 13,-26 C13,-19 10,-13 0,0 Z" fill={color} stroke="#fff" strokeWidth={2.2} filter="drop-shadow(0 2px 4px rgba(0,0,0,.35))" />
+        <circle cx={0} cy={-26} r={7} fill="#fff" />
+        <text x={0} y={-21.5} textAnchor="middle" fontSize={10.5} fontWeight={700} fill={color}>
           {meta.emoji}
         </text>
         {a.floor && (
-          <text x={0} y={-38} textAnchor="middle" fontSize={10} fontWeight={700} fill="#4a3b28" paintOrder="stroke" stroke="#fdfbf4" strokeWidth={3}>
+          <text x={0} y={-42} textAnchor="middle" fontSize={11} fontWeight={700} fill="#5a4630" paintOrder="stroke" stroke="#fdf6e3" strokeWidth={3.5}>
             {a.buildingName?.replace(/山东财经大学(圣井|章丘)校区/, "")}·{a.floor}
           </text>
         )}
@@ -497,11 +515,10 @@ export function CampusCanvas() {
     const [px, py] = proj(x, y);
     return (
       <g className="pointer-events-none">
-        <circle cx={px} cy={py} r={60 * view.s} fill="none" stroke="#e2622b" strokeOpacity={0.55} strokeWidth={1.6} strokeDasharray="6 4" />
-        <circle cx={px} cy={py} r={16} fill="#e2622b">
+        <circle cx={px} cy={py} r={20} fill="#c2410c">
           <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.2s" repeatCount="indefinite" />
         </circle>
-        <circle cx={px} cy={py} r={8} fill="#e2622b" stroke="#fff" strokeWidth={3} />
+        <circle cx={px} cy={py} r={9} fill="#c2410c" stroke="#fff" strokeWidth={3.5} />
       </g>
     );
   }
