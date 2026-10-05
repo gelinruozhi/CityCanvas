@@ -1,9 +1,8 @@
 import type { BuildingType } from "@/lib/types";
 
 /**
- * 校园画布数据 —— 完全按用户提供的标准布局图 1:1 绘制。
- * 每个楼的位置 = 布局图上标签的位置；道路 = 图上白色路带。
- * 画布 948 × 718（与布局图同尺寸）。
+ * 校园画布数据 —— 卡通平面图（1080×1500）等比映射到标准布局图尺寸（948×718）。
+ * 映射系数：x×0.878，y×0.479。楼栋位置/大小/间距与卡通平面图逐栋对齐。
  */
 export const CAMPUS_WIDTH = 948;
 export const CAMPUS_HEIGHT = 718;
@@ -19,71 +18,69 @@ export interface CampusBuildingDef {
 }
 
 export const CAMPUS_BUILDINGS: CampusBuildingDef[] = [
-  // ===== 顶部 =====
-  { id: "clinic", name: "医务室", buildingType: "store", x: 815, y: 72, size: [70, 34], floorCount: 1 },
-  { id: "northField", name: "北运动场", buildingType: "field", x: 712, y: 118, size: [150, 58], floorCount: 0 },
-  // ===== A 区学生公寓（东侧纵列） =====
-  { id: "dorm1", name: "一号学生公寓", buildingType: "dorm", x: 737, y: 168, size: [88, 34], floorCount: 6 },
-  { id: "dorm2", name: "二号学生公寓", buildingType: "dorm", x: 732, y: 228, size: [88, 34], floorCount: 6 },
-  { id: "dorm3", name: "三号学生公寓", buildingType: "dorm", x: 727, y: 288, size: [88, 34], floorCount: 6 },
-  // ===== 西北教学区 =====
-  { id: "b1", name: "一号教学楼", buildingType: "teaching", x: 137, y: 188, size: [95, 38], floorCount: 5 },
-  { id: "lib", name: "图书馆", buildingType: "library", x: 282, y: 248, size: [95, 38], floorCount: 5 },
-  { id: "b2", name: "二号教学楼", buildingType: "teaching", x: 465, y: 248, size: [95, 38], floorCount: 5 },
-  { id: "b3", name: "三号教学楼", buildingType: "teaching", x: 125, y: 306, size: [95, 38], floorCount: 5 },
-  // ===== 中部 =====
-  { id: "b4", name: "四号教学楼", buildingType: "teaching", x: 435, y: 348, size: [95, 38], floorCount: 5 },
-  { id: "shop", name: "校园超市", buildingType: "store", x: 628, y: 348, size: [70, 32], floorCount: 2 },
-  { id: "canteen1", name: "第一餐厅", buildingType: "canteen", x: 760, y: 370, size: [88, 38], floorCount: 3 },
-  { id: "b5", name: "五号教学楼", buildingType: "teaching", x: 300, y: 418, size: [95, 38], floorCount: 5 },
-  // ===== B 区学生公寓（西） =====
-  { id: "dorm4", name: "四号学生公寓", buildingType: "dorm", x: 230, y: 418, size: [88, 34], floorCount: 6 },
-  { id: "teacher", name: "教师之家", buildingType: "dorm", x: 162, y: 458, size: [70, 32], floorCount: 4 },
-  { id: "dorm5", name: "五号学生公寓", buildingType: "dorm", x: 232, y: 492, size: [88, 34], floorCount: 6 },
-  // ===== 东部 =====
-  { id: "eastField", name: "东运动场", buildingType: "field", x: 712, y: 428, size: [170, 64], floorCount: 0 },
-  { id: "activity", name: "大学生活动中心", buildingType: "culture", x: 718, y: 478, size: [88, 34], floorCount: 3 },
-  { id: "museum", name: "校史馆", buildingType: "culture", x: 722, y: 505, size: [70, 30], floorCount: 2 },
-  // ===== 中南 =====
-  { id: "b7", name: "七号教学楼", buildingType: "teaching", x: 435, y: 548, size: [95, 38], floorCount: 5 },
-  { id: "dorm6", name: "六号学生公寓", buildingType: "dorm", x: 718, y: 545, size: [88, 34], floorCount: 6 },
-  { id: "b9", name: "九号教学楼", buildingType: "teaching", x: 470, y: 582, size: [95, 38], floorCount: 5 },
-  { id: "b8", name: "八号教学楼", buildingType: "teaching", x: 720, y: 585, size: [88, 34], floorCount: 5 },
-  { id: "dorm7", name: "七号学生公寓", buildingType: "dorm", x: 520, y: 615, size: [88, 34], floorCount: 6 },
-  // ===== 西南 =====
-  { id: "westField", name: "西运动场", buildingType: "field", x: 175, y: 565, size: [140, 58], floorCount: 0 },
-  { id: "canteen2", name: "第二餐厅", buildingType: "canteen", x: 435, y: 482, size: [88, 38], floorCount: 3 },
-  { id: "canteen3", name: "第三餐厅", buildingType: "canteen", x: 365, y: 628, size: [88, 36], floorCount: 3 },
-  { id: "dorm9", name: "九号学生公寓", buildingType: "dorm", x: 388, y: 672, size: [88, 34], floorCount: 6 },
-  { id: "dorm8", name: "八号学生公寓", buildingType: "dorm", x: 520, y: 655, size: [88, 34], floorCount: 6 },
+  // ===== 教学楼 =====
+  { id: "b1", name: "一号教学楼", buildingType: "teaching", x: 140, y: 177, size: [132, 29], floorCount: 5 },
+  { id: "b2", name: "二号教学楼", buildingType: "teaching", x: 465, y: 235, size: [132, 29], floorCount: 5 },
+  { id: "b3", name: "三号教学楼", buildingType: "teaching", x: 127, y: 273, size: [132, 29], floorCount: 5 },
+  { id: "lib", name: "图书馆", buildingType: "library", x: 281, y: 244, size: [114, 41], floorCount: 5 },
+  { id: "b4", name: "四号教学楼", buildingType: "teaching", x: 439, y: 307, size: [132, 29], floorCount: 5 },
+  { id: "b5", name: "五号教学楼", buildingType: "teaching", x: 435, y: 410, size: [132, 29], floorCount: 5 },
+  { id: "b7", name: "七号教学楼", buildingType: "teaching", x: 417, y: 493, size: [132, 29], floorCount: 5 },
+  { id: "b9", name: "九号教学楼", buildingType: "teaching", x: 443, y: 556, size: [132, 29], floorCount: 5 },
+  { id: "b6", name: "六号教学楼", buildingType: "teaching", x: 746, y: 517, size: [132, 29], floorCount: 5 },
+  { id: "b8", name: "八号教学楼", buildingType: "teaching", x: 746, y: 584, size: [132, 29], floorCount: 5 },
+  // ===== 餐饮 =====
+  { id: "canteen1", name: "第一餐厅", buildingType: "canteen", x: 834, y: 330, size: [114, 34], floorCount: 3 },
+  { id: "canteen2", name: "第二餐厅", buildingType: "canteen", x: 457, y: 431, size: [114, 34], floorCount: 3 },
+  { id: "canteen3", name: "第三餐厅", buildingType: "canteen", x: 343, y: 623, size: [114, 34], floorCount: 3 },
+  // ===== A 区学生公寓（东北纵列 1-3 号） =====
+  { id: "dorm1", name: "一号学生公寓", buildingType: "dorm", x: 773, y: 153, size: [97, 22], floorCount: 6 },
+  { id: "dorm2", name: "二号学生公寓", buildingType: "dorm", x: 755, y: 216, size: [97, 22], floorCount: 6 },
+  { id: "dorm3", name: "三号学生公寓", buildingType: "dorm", x: 746, y: 273, size: [97, 22], floorCount: 6 },
+  // ===== B 区学生公寓（西，4-5 号 + 教师之家） =====
+  { id: "dorm4", name: "四号学生公寓", buildingType: "dorm", x: 219, y: 378, size: [97, 22], floorCount: 6 },
+  { id: "dorm5", name: "五号学生公寓", buildingType: "dorm", x: 206, y: 445, size: [97, 22], floorCount: 6 },
+  { id: "teacher", name: "教师之家", buildingType: "dorm", x: 176, y: 412, size: [70, 22], floorCount: 4 },
+  // ===== C 区学生公寓（南，6/7/8/9 号） =====
+  { id: "dorm6", name: "六号学生公寓", buildingType: "dorm", x: 773, y: 637, size: [97, 22], floorCount: 6 },
+  { id: "dorm7", name: "七号学生公寓", buildingType: "dorm", x: 544, y: 637, size: [97, 22], floorCount: 6 },
+  { id: "dorm8", name: "八号学生公寓", buildingType: "dorm", x: 562, y: 671, size: [97, 22], floorCount: 6 },
+  { id: "dorm9", name: "九号学生公寓", buildingType: "dorm", x: 351, y: 685, size: [97, 22], floorCount: 6 },
+  // ===== 服务与配套 =====
+  { id: "activity", name: "大学生活动中心", buildingType: "culture", x: 729, y: 426, size: [105, 29], floorCount: 3 },
+  { id: "museum", name: "校史馆", buildingType: "culture", x: 790, y: 455, size: [79, 24], floorCount: 2 },
+  { id: "shop", name: "校园超市", buildingType: "store", x: 694, y: 314, size: [61, 19], floorCount: 2 },
+  { id: "clinic", name: "医务室", buildingType: "store", x: 825, y: 60, size: [53, 19], floorCount: 1 },
+  // ===== 运动场 =====
+  { id: "eastField", name: "东运动场", buildingType: "field", x: 773, y: 378, size: [193, 53], floorCount: 0 },
+  { id: "northField", name: "北运动场", buildingType: "field", x: 781, y: 110, size: [176, 53], floorCount: 0 },
+  { id: "westField", name: "西运动场", buildingType: "field", x: 219, y: 556, size: [158, 48], floorCount: 0 },
 ];
 
-/** 景观湖（椭圆）—— 北门内偏东 */
-export const CAMPUS_LAKE = { x: 535, y: 152, rx: 55, ry: 28 };
+/** 景观湖（椭圆）—— 北门内 */
+export const CAMPUS_LAKE = { x: 527, y: 144, rx: 75, ry: 23 };
 
-/** 主干道路（折线）—— 按布局图路网 */
+/** 主干道路（折线）—— 卡通平面图路网等比映射 */
 export const CAMPUS_ROADS: Array<{ pts: Array<[number, number]>; width: number }> = [
-  { pts: [[470, 60], [470, 380], [460, 660]], width: 18 },      // 北门主纵路
-  { pts: [[770, 60], [770, 620]], width: 16 },                   // 东纵路
-  { pts: [[150, 100], [790, 100]], width: 16 },                  // 北横路
-  { pts: [[135, 345], [790, 345]], width: 16 },                  // 中横路（四号教学楼/超市前）
-  { pts: [[135, 455], [600, 455]], width: 14 },                  // 二横路（五号教学楼/教师之家前）
-  { pts: [[150, 170], [150, 560]], width: 14 },                  // 西纵路
-  { pts: [[250, 610], [780, 612]], width: 14 },                  // 南横路（宿舍区）
-  { pts: [[255, 480], [255, 612]], width: 12 },                  // 西南连接
-  { pts: [[620, 345], [620, 260]], width: 12 },                  // 超市支路
+  { pts: [[474, 77], [457, 230], [439, 422], [430, 618]], width: 13 },  // 北门主路贯穿
+  { pts: [[834, 120], [808, 407], [773, 623]], width: 12 },             // 东环路
+  { pts: [[79, 168], [70, 431], [123, 623]], width: 11 },               // 西环路
+  { pts: [[263, 91], [834, 96]], width: 12 },                            // 北横路
+  { pts: [[132, 307], [790, 316]], width: 12 },                          // 图书馆前横路
+  { pts: [[202, 421], [746, 426]], width: 11 },                          // 二餐前横路
+  { pts: [[263, 599], [773, 599]], width: 11 },                          // 南横路
+  { pts: [[430, 618], [351, 671]], width: 9 },                           // 南区支路
 ];
 
 /** 绿地树丛装饰 */
 export const CAMPUS_GREENS: Array<{ x: number; y: number; w: number; h: number }> = [
-  { x: 300, y: 120, w: 130, h: 90 },    // 湖西绿地
-  { x: 545, y: 120, w: 120, h: 80 },    // 湖东绿地
-  { x: 560, y: 380, w: 120, h: 60 },    // 超市北绿地
-  { x: 300, y: 380, w: 100, h: 60 },    // 四号教学楼旁
-  { x: 560, y: 440, w: 90, h: 90 },     // 东运动场西
-  { x: 320, y: 470, w: 90, h: 70 },     // 五号教学楼南
-  { x: 560, y: 560, w: 110, h: 60 },    // 中南绿地
-  { x: 300, y: 560, w: 80, h: 60 },     // 七号教学楼西
+  { x: 334, y: 105, w: 193, h: 58 },   // 湖西绿地
+  { x: 545, y: 115, w: 211, h: 58 },   // 湖东绿地
+  { x: 211, y: 335, w: 158, h: 58 },   // 三号教学楼前
+  { x: 545, y: 355, w: 158, h: 48 },   // 四号教学楼前
+  { x: 545, y: 455, w: 176, h: 62 },   // 二餐与活动中心间
+  { x: 264, y: 565, w: 141, h: 58 },   // 西运动场北
+  { x: 615, y: 546, w: 105, h: 58 },   // 七号楼旁
 ];
 
 /** 根据楼栋 id 取定义 */
@@ -109,7 +106,7 @@ export function nearbyBuildings(x: number, y: number, n = 4) {
 
 /** 点位所在校园区域 */
 export function campusZone(x: number, y: number): string {
-  const ns = y < 200 ? "北" : y < 400 ? "中北" : y < 550 ? "中南" : "南";
-  const ew = x < 250 ? "西" : x < 600 ? "中" : "东";
+  const ns = y < 240 ? "北" : y < 360 ? "中北" : y < 500 ? "中南" : "南";
+  const ew = x < 260 ? "西" : x < 650 ? "中" : "东";
   return `${ns}${ew}区`;
 }
