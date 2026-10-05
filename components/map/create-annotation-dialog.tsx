@@ -16,12 +16,13 @@ import {
 import { toast } from "sonner";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
 import { nearbyBuildings } from "@/lib/campus/map-data";
-import { SHAPE_META } from "@/lib/types";
 import {
+  SHAPE_META,
   BUILDING_TYPES,
   BUILDING_GROUPS,
   type BuildingType,
 } from "@/lib/types";
+import { isIndoorTypeAllowed, indoorTypeHint } from "@/lib/campus/type-rules";
 import {
   Dialog,
   DialogContent,
@@ -266,7 +267,17 @@ export function CreateAnnotationDialog() {
             <span className="ml-2 text-zinc-600">
               已选：{BUILDING_TYPES.find((t) => t.value === buildingType)?.label}
             </span>
+            {indoorFloor && selectedBuilding && (
+              <span className="ml-2 text-orange-300/80">
+                · 室内仅可选 {selectedBuilding.name} 内合理的类型
+              </span>
+            )}
           </label>
+          {indoorFloor && selectedBuilding && indoorTypeHint(selectedBuilding.buildingType) && (
+            <p className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2 text-[11px] leading-relaxed text-orange-200/90">
+              {indoorTypeHint(selectedBuilding.buildingType)}
+            </p>
+          )}
 
           <div className="space-y-3 rounded-xl border border-white/5 bg-white/[0.015] p-3">
             {BUILDING_GROUPS.map((group) => {
@@ -283,18 +294,26 @@ export function CreateAnnotationDialog() {
                     </span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
-                    {groupTypes.map((t) => (
+                    {groupTypes.map((t) => {
+                      const disabled =
+                        indoorFloor && selectedBuilding
+                          ? !isIndoorTypeAllowed(selectedBuilding.buildingType, t.value)
+                          : false;
+                      return (
                       <motion.button
                         key={t.value}
                         type="button"
                         whileTap={{ scale: 0.93 }}
                         onClick={() => setBuildingType(t.value)}
+                        disabled={disabled}
                         className={`group flex flex-col items-center gap-0.5 rounded-lg border px-1 py-1.5 transition ${
-                          buildingType === t.value
+                          disabled
+                            ? "cursor-not-allowed border-white/5 bg-white/[0.01] opacity-30"
+                            : buildingType === t.value
                             ? "border-orange-500/60 bg-orange-500/15 shadow-md shadow-orange-500/10"
                             : "border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.06]"
                         }`}
-                        title={t.hint}
+                        title={disabled ? `${selectedBuilding?.name}内不适合${t.label}` : t.hint}
                       >
                         <span className="text-base leading-none">{t.emoji}</span>
                         <span
@@ -307,7 +326,8 @@ export function CreateAnnotationDialog() {
                           {t.label}
                         </span>
                       </motion.button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
