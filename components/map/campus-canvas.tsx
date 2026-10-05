@@ -318,7 +318,20 @@ export function CampusCanvas() {
         })}
 
         {/* 楼栋：立体楼块 + 楼内标签 */}
-        {CAMPUS_BUILDINGS.filter((b) => b.buildingType !== "field").map((b) => {
+        {CAMPUS_BUILDINGS.filter((b) => b.buildingType === "plaza").map((b) => {
+          const [cx, cy] = proj(b.x, b.y);
+          return (
+            <g key={b.id} className="cursor-pointer" onClick={(e) => { e.stopPropagation(); if (!panRef.current?.moved) return; }}>
+              <ellipse cx={cx} cy={cy} rx={(b.size[0] / 2) * view.s} ry={(b.size[1] / 2) * view.s} fill="#7cc3e8" stroke="#4d9fd0" strokeWidth={2.5} />
+              {labelVisible && (
+                <text x={cx} y={cy + 5} textAnchor="middle" className="pointer-events-none select-none" style={{ fontSize: 12, fontWeight: 700, fill: "#1a5276", paintOrder: "stroke", stroke: "#d6ecf8", strokeWidth: 3 }}>
+                  {b.name}
+                </text>
+              )}
+            </g>
+          );
+        })}
+        {CAMPUS_BUILDINGS.filter((b) => b.buildingType !== "field" && b.buildingType !== "plaza").map((b) => {
           const sel = selectedBuilding?.id === b.id;
           const hov = hoverBuilding === b.id;
           const [cx, cy] = proj(b.x, b.y);
