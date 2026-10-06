@@ -36,9 +36,20 @@ export function CampusCanvas() {
   const selectAnnotation = useAnnotationStore((s) => s.selectAnnotation);
   const selectedBuilding = useAnnotationStore((s) => s.selectedBuilding);
   const selectBuilding = useAnnotationStore((s) => s.selectBuilding);
+  const indoorFloor = useAnnotationStore((s) => s.indoorFloor);
 
   const drawToolRef = useRef(drawTool);
   drawToolRef.current = drawTool;
+  // 调试/校准句柄：window.__ccMap = 地图实例
+  useEffect(() => {
+    (window as any).__ccMap = {
+      setZoomAndCenter: (z: number, c: [number, number]) => {
+        viewRef.current = { cx: c[0], cy: c[1], s: z };
+        rerender();
+      },
+      getZoom: () => viewRef.current.s,
+    };
+  });
   const drawStartRef = useRef<{ x: number; y: number } | null>(null);
   const [drawPreview, setDrawPreview] = useState<
     | { kind: "circle"; x: number; y: number; r: number }
@@ -87,6 +98,23 @@ export function CampusCanvas() {
     rerender();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size.w, size.h]);
+
+  // 室内模式：视野锁定到所选建筑内部（放大铺满屏幕）
+  const isIndoor = Boolean(indoorFloor && selectedBuilding);
+  useEffect(() => {
+    if (!size.w || size.w < 100) return;
+    if (isIndoor && selectedBuilding) {
+      viewRef.current = {
+        cx: selectedBuilding.x,
+        cy: selectedBuilding.y,
+        s: Math.min(size.w / (selectedBuilding.size[0] + 120), size.h / (selectedBuilding.size[1] + 140)) * 1.6,
+      };
+    } else {
+      viewRef.current = { cx: CAMPUS_WIDTH / 2, cy: CAMPUS_HEIGHT / 2, s: Math.min(size.w / (CAMPUS_WIDTH + 120), size.h / (CAMPUS_HEIGHT + 120)) };
+    }
+    rerender();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isIndoor, selectedBuilding?.id, size.w, size.h]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -196,24 +224,46 @@ export function CampusCanvas() {
             <circle cx="21" cy="19" r="1.5" fill="#71a966" opacity={0.45} />
             <circle cx="15" cy="26" r="1" fill="#88c07c" opacity={0.5} />
           </pattern>
+          <pattern id="indoor-tex" width="44" height="44" patternUnits="userSpaceOnUse">
+            <rect width="44" height="44" fill="#f3ecdb" />
+            <path d="M0 0H44V44H0Z" fill="none" stroke="#ddd1b8" strokeWidth={1} />
+          </pattern>
         </defs>
 
-        {/* 草地底 */}
-        <rect width={size.w} height={size.h} fill="#9ec994" />
-        <rect width={size.w} height={size.h} fill="url(#grass-tex)" />
+        {/* 室内模式背景：该楼内部平面 */}
+        {isIndoor && (
+          <>
+            <rect width={size.w} height={size.h} fill="url(#indoor-tex)" />
+            <rect x={30} y={30} width={size.w - 60} height={size.h - 60} rx={10} fill="#f6ecd8" stroke="#a8895f" strokeWidth={3} />
+            {labelVisible && (
+              <text x={size.w / 2} y={70} textAnchor="middle" style={{ fontSize: 24, fontWeight: 700, fill: "#5a4630" }}>
+                {selectedBuilding?.name} · {indoorFloor} 室内
+              </text>
+            )}
+          </>
+        )}
 
-        {/* 校园地块边界 */}
-        {(() => {
-          const [x1, y1] = proj(20, 30);
-          const [x2, y2] = proj(CAMPUS_WIDTH - 20, CAMPUS_HEIGHT - 20);
-          return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#a5cf9a" stroke="#7ba36f" strokeWidth={3} rx={10} />;
-        })()}
+        {/* 室外模式背景 */}
+        {!isIndoor && (
+          <>
+            {/* 草地底 */}
+            <rect width={size.w} height={size.h} fill="#9ec994" />
+            <rect width={size.w} height={size.h} fill="url(#grass-tex)" />
 
-        {/* 绿地块 */}
-        {CAMPUS_GREENS.map((g, i) => {
-          const [gx, gy] = proj(g.x, g.y);
-          return <rect key={i} x={gx} y={gy} width={g.w * view.s} height={g.h * view.s} fill="#8cc282" rx={20} opacity={0.9} />;
-        })}
+            {/* 校园地块边界 */}
+            {(() => {
+              const [x1, y1] = proj(20, 30);
+              const [x2, y2] = proj(CAMPUS_WIDTH - 20, CAMPUS_HEIGHT - 20);
+              return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#a5cf9a" stroke="#7ba36f" strokeWidth={3} rx={10} />;
+            })()}
+
+            {/* 绿地块 */}
+            {CAMPUS_GREENS.map((g, i) => {
+              const [gx, gy] = proj(g.x, g.y);
+              return <rect key={i} x={gx} y={gy} width={g.w * view.s} height={g.h * view.s} fill="#8cc282" rx={20} opacity={0.9} />;
+            })}
+          </>
+        )}
 
         {/* 湖 */}
         <ellipse
@@ -244,6 +294,9 @@ export function CampusCanvas() {
           </text>
         )}
 
+        {/* 室外专属元素：道路/运动场/树丛/楼栋 —— 室内模式隐藏 */}
+        {!isIndoor && (
+          <>
         {/* 道路：灰白路带 + 边 */}
         {CAMPUS_ROADS.map((r, i) => (
           <g key={i}>
@@ -421,10 +474,18 @@ export function CampusCanvas() {
           );
         })}
 
-        {/* 标注 */}
-        {annotations.filter((a) => a.shape === "circle").map((a) => renderShapeAnnotation(a, a.id === selectedId))}
-        {annotations.filter((a) => a.shape === "rect").map((a) => renderRectAnnotation(a, a.id === selectedId))}
-        {annotations.filter((a) => a.shape === "point").map((a) => renderPointAnnotation(a, a.id === selectedId))}
+        {/* 标注（室内：仅本楼本层；室外：仅室外无楼层标注） */}
+        {annotations
+          .filter((a) => (isIndoor ? a.buildingName === selectedBuilding?.name && a.floor === indoorFloor : !a.buildingName))
+          .map((a) =>
+            a.shape === "circle" ? (
+              renderShapeAnnotation(a, a.id === selectedId)
+            ) : a.shape === "rect" ? (
+              renderRectAnnotation(a, a.id === selectedId)
+            ) : (
+              renderPointAnnotation(a, a.id === selectedId)
+            )
+          )}
 
         {/* 待创建预览 */}
         {pendingPosition && pendingPosition.shape !== "circle" && pendingPosition.shape !== "rect" &&
@@ -469,6 +530,8 @@ export function CampusCanvas() {
               </g>
             );
           })()}
+        </>
+        )}
       </svg>
     </div>
   );
