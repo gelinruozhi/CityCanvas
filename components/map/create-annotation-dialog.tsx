@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   MapPin,
@@ -22,7 +22,7 @@ import {
   BUILDING_GROUPS,
   type BuildingType,
 } from "@/lib/types";
-import { isIndoorTypeAllowed, indoorTypeHint } from "@/lib/campus/type-rules";
+import { indoorTypeHint, allowedIndoorTypes } from "@/lib/campus/type-rules";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +61,14 @@ export function CreateAnnotationDialog() {
   const nearby = pendingPosition
     ? nearbyBuildings(pendingPosition.x, pendingPosition.y, 3)
     : [];
+
+  // 室内模式：类型白名单（不允许的类型直接不展示，而不是灰掉占位）
+  const indoorRestricted = Boolean(indoorFloor && selectedBuilding);
+  const allowedSet = useMemo(() => {
+    if (!indoorRestricted || !selectedBuilding) return null;
+    const allowed = allowedIndoorTypes(selectedBuilding.buildingType);
+    return allowed ? new Set(allowed) : null; // null = 该楼无限制
+  }, [indoorRestricted, selectedBuilding]);
 
   useEffect(() => {
     if (!pendingPosition) return;
@@ -277,7 +285,10 @@ export function CreateAnnotationDialog() {
           <div className="space-y-3 rounded-xl border border-white/5 bg-white/[0.015] p-3">
             {BUILDING_GROUPS.map((group) => {
               const groupTypes = BUILDING_TYPES.filter((t) => t.group === group.value);
-              if (groupTypes.length === 0) return null;
+              const visibleTypes = allowedSet
+                ? groupTypes.filter((t) => allowedSet.has(t.value))
+                : groupTypes;
+              if (groupTypes.length === 0 || visibleTypes.length === 0) return null;
               return (
                 <div key={group.value}>
                   <div className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-zinc-500">
@@ -289,26 +300,18 @@ export function CreateAnnotationDialog() {
                     </span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
-                    {groupTypes.map((t) => {
-                      const disabled =
-                        indoorFloor && selectedBuilding
-                          ? !isIndoorTypeAllowed(selectedBuilding.buildingType, t.value)
-                          : false;
-                      return (
+                    {visibleTypes.map((t) => (
                       <motion.button
                         key={t.value}
                         type="button"
                         whileTap={{ scale: 0.93 }}
                         onClick={() => setBuildingType(t.value)}
-                        disabled={disabled}
                         className={`group flex flex-col items-center gap-0.5 rounded-lg border px-1 py-1.5 transition ${
-                          disabled
-                            ? "cursor-not-allowed border-white/5 bg-white/[0.01] opacity-30"
-                            : buildingType === t.value
+                          buildingType === t.value
                             ? "border-orange-500/60 bg-orange-500/15 shadow-md shadow-orange-500/10"
                             : "border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.06]"
                         }`}
-                        title={disabled ? `${selectedBuilding?.name}内不适合${t.label}` : t.hint}
+                        title={t.hint}
                       >
                         <span className="text-base leading-none">{t.emoji}</span>
                         <span
@@ -321,8 +324,7 @@ export function CreateAnnotationDialog() {
                           {t.label}
                         </span>
                       </motion.button>
-                      );
-                    })}
+                    ))}
                   </div>
                 </div>
               );
