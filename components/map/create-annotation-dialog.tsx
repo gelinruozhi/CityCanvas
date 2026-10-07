@@ -258,7 +258,13 @@ export function CreateAnnotationDialog() {
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value.slice(0, 20))}
-            placeholder="如：星空咖啡馆、24h 自习舱、屋顶花园…"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            placeholder="如：星空咖啡馆、24h 自习舱、屋顶花园…（Enter 快速创建）"
             autoFocus
           />
         </div>
@@ -346,10 +352,16 @@ export function CreateAnnotationDialog() {
             rows={4}
             value={content}
             onChange={(e) => setContent(e.target.value.slice(0, MAX_LEN))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
             placeholder={
               intent === "build"
-                ? "为什么要建在这里？它能为校园带来什么？描述得越具体，AI 评估越精准。"
-                : "目前这里有什么？你希望怎么改？描述越具体，AI 越能给出有价值的建议。"
+                ? "为什么要建在这里？它能为校园带来什么？描述得越具体，AI 评估越精准。（Ctrl+Enter 快速创建）"
+                : "目前这里有什么？你希望怎么改？描述越具体，AI 越能给出有价值的建议。（Ctrl+Enter 快速创建）"
             }
           />
         </div>

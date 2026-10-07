@@ -6,14 +6,14 @@ import type { BuildingType } from "@/lib/types";
  * 未列出的建筑类型默认全部允许。
  */
 const COMPATIBLE_INDOOR: Partial<Record<BuildingType, BuildingType[]>> = {
-  teaching: ["studyroom", "cafe", "store", "vending", "logistics", "art", "bench", "other"],
-  library: ["studyroom", "cafe", "store", "vending", "logistics", "art", "bench", "other"],
-  dorm: ["store", "logistics", "vending", "studyroom", "cafe", "art", "bench", "other"],
-  canteen: ["canteen", "cafe", "store", "vending", "art", "bench", "other"],
-  gym: ["gym", "medical", "vending", "store", "cafe", "bench", "other"],
-  culture: ["culture", "art", "cafe", "store", "vending", "bench", "other"],
-  lab: ["studyroom", "store", "vending", "logistics", "art", "bench", "other"],
-  medical: ["store", "vending", "art", "bench", "other"],
+  teaching: ["studyroom", "cafe", "store", "vending", "logistics", "charging", "water", "recycle", "art", "bench", "other"],
+  library: ["studyroom", "cafe", "store", "vending", "logistics", "water", "charging", "recycle", "art", "bench", "other"],
+  dorm: ["store", "logistics", "vending", "studyroom", "cafe", "laundry", "charging", "water", "recycle", "art", "bench", "other"],
+  canteen: ["canteen", "cafe", "store", "vending", "foodtruck", "water", "recycle", "art", "bench", "other"],
+  gym: ["gym", "medical", "firstaid", "vending", "store", "cafe", "charging", "water", "bench", "other"],
+  culture: ["culture", "art", "stage", "cafe", "store", "vending", "water", "recycle", "bench", "other"],
+  lab: ["studyroom", "store", "vending", "logistics", "charging", "water", "recycle", "art", "bench", "other"],
+  medical: ["firstaid", "store", "vending", "water", "art", "bench", "other"],
 };
 
 export function allowedIndoorTypes(buildingType: BuildingType): BuildingType[] | null {
@@ -34,7 +34,7 @@ export function indoorTypeHint(buildingType: BuildingType): string | null {
   const hints: Partial<Record<BuildingType, string>> = {
     teaching: "教学楼内适合：自习区、咖啡角、便利店、贩卖机、文化装饰等",
     library: "图书馆内适合：自习区、咖啡角、书咖、文化展示等",
-    dorm: "宿舍楼内适合：便利店、快递柜、自习角、咖啡角、贩卖机等生活服务",
+    dorm: "宿舍楼内适合：便利店、快递柜、洗衣房、自习角、咖啡角、充电站等生活服务",
     canteen: "餐厅内适合：档口、奶茶咖啡、便利店等餐饮服务",
     gym: "体育馆内适合：运动空间、健身配套等",
     culture: "文化场馆内适合：展览、艺术装置、文创空间等",

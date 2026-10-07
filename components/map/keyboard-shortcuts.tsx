@@ -18,8 +18,12 @@ export function KeyboardShortcuts() {
   const undo = useAnnotationStore((s) => s.undo);
   const redo = useAnnotationStore((s) => s.redo);
   const selectedId = useAnnotationStore((s) => s.selectedId);
+  const selectedBuilding = useAnnotationStore((s) => s.selectedBuilding);
+  const indoorFloor = useAnnotationStore((s) => s.indoorFloor);
   const removeAnnotation = useAnnotationStore((s) => s.removeAnnotation);
   const selectAnnotation = useAnnotationStore((s) => s.selectAnnotation);
+  const selectBuilding = useAnnotationStore((s) => s.selectBuilding);
+  const setIndoorFloor = useAnnotationStore((s) => s.setIndoorFloor);
   const closeCreateDialog = useAnnotationStore((s) => s.closeCreateDialog);
   const closePublishDialog = useAnnotationStore((s) => s.closePublishDialog);
 
@@ -46,8 +50,18 @@ export function KeyboardShortcuts() {
         return;
       }
       if (e.key === "Escape") {
+        // 退出链：弹窗 → 绘图中的形状 → 室内模式 → 标注/建筑选中
         closeCreateDialog();
         closePublishDialog();
+        window.dispatchEvent(new CustomEvent("cc-cancel-draw"));
+        if (indoorFloor) {
+          setIndoorFloor(null);
+          return;
+        }
+        if (selectedBuilding) {
+          selectBuilding(null);
+          return;
+        }
         if (selectedId) selectAnnotation(null);
         return;
       }
@@ -60,8 +74,8 @@ export function KeyboardShortcuts() {
       if (e.key === "?" || (e.shiftKey && e.key === "/")) {
         e.preventDefault();
         toast.info("快捷键", {
-          description: "Ctrl+Z 撤销 · Shift+Ctrl+Z 重做 · Esc 关闭 · Del 删除选中",
-          duration: 5000,
+          description: "Ctrl+Z 撤销 · Shift+Ctrl+Z 重做 · Esc 逐级退出（弹窗/绘图/室内/选中）· Del 删除选中",
+          duration: 6000,
         });
       }
     };
@@ -72,8 +86,12 @@ export function KeyboardShortcuts() {
     undo,
     redo,
     selectedId,
+    selectedBuilding,
+    indoorFloor,
     removeAnnotation,
     selectAnnotation,
+    selectBuilding,
+    setIndoorFloor,
     closeCreateDialog,
     closePublishDialog,
   ]);

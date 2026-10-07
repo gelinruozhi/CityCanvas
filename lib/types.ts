@@ -19,8 +19,17 @@ export type BuildingType =
   | "studyroom"
   | "logistics"
   | "medical"
+  | "laundry"
+  | "atm"
+  | "barber"
+  | "foodtruck"
+  | "charging"
   // 设施小品（家具级）
   | "bench"
+  | "water"
+  | "recycle"
+  | "firstaid"
+  | "stage"
   | "lamp"
   | "bike"
   | "vending"
@@ -103,9 +112,18 @@ export const BUILDING_TYPES: BuildingTypeMeta[] = [
   { value: "studyroom", group: "service", label: "自习室", emoji: "📖", color: "#6366f1", hint: "24h 自习舱、共享自习空间、研讨小屋" },
   { value: "logistics", group: "service", label: "快递", emoji: "📦", color: "#ef4444", hint: "快递柜、菜鸟驿站、自助打印站" },
   { value: "medical", group: "service", label: "医务", emoji: "🏥", color: "#e11d48", hint: "医务室、校医院、心理咨询点" },
+  { value: "laundry", group: "service", label: "洗衣房", emoji: "🧺", color: "#0891b2", hint: "自助洗衣房、烘干机、共享衣柜" },
+  { value: "atm", group: "service", label: "自助银行", emoji: "🏧", color: "#b45309", hint: "ATM、自助存取款机" },
+  { value: "barber", group: "service", label: "理发店", emoji: "✂️", color: "#7c3aed", hint: "理发店、美发角" },
+  { value: "foodtruck", group: "service", label: "移动餐车", emoji: "🚚", color: "#ea580c", hint: "餐车、夜宵摊、流动早餐点" },
+  { value: "charging", group: "service", label: "充电站", emoji: "🔌", color: "#16a34a", hint: "电动车充电桩、手机共享充电" },
 
   // ===== 设施小品（家具级）=====
   { value: "bench", group: "facility", label: "座椅", emoji: "🪑", color: "#78716c", hint: "排椅、长凳、户外座椅、休憩点" },
+  { value: "water", group: "facility", label: "直饮水", emoji: "🚰", color: "#0ea5e9", hint: "直饮机、饮水点、热水间" },
+  { value: "recycle", group: "facility", label: "回收站", emoji: "♻️", color: "#65a30d", hint: "垃圾分类站、旧衣回收箱" },
+  { value: "firstaid", group: "facility", label: "急救点", emoji: "⛑️", color: "#dc2626", hint: "AED、急救箱、健康监测角" },
+  { value: "stage", group: "facility", label: "露天舞台", emoji: "🎤", color: "#9333ea", hint: "表演台、路演区、露天影院" },
   { value: "lamp", group: "facility", label: "路灯", emoji: "💡", color: "#facc15", hint: "路灯、景观灯、感应夜灯、装饰灯" },
   { value: "bike", group: "facility", label: "单车点", emoji: "🚲", color: "#06b6d4", hint: "自行车架、共享单车点、车棚" },
   { value: "vending", group: "facility", label: "售卖机", emoji: "🥤", color: "#dc2626", hint: "自动售货机、饮水机、自助打印机" },

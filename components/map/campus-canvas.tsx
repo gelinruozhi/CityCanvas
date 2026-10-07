@@ -88,6 +88,16 @@ export function CampusCanvas() {
     return () => ro.disconnect();
   }, []);
 
+  // Esc（全局快捷键）触发的绘图取消
+  useEffect(() => {
+    const cancel = () => {
+      drawStartRef.current = null;
+      setDrawPreview(null);
+    };
+    window.addEventListener("cc-cancel-draw", cancel);
+    return () => window.removeEventListener("cc-cancel-draw", cancel);
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
     containerRef.current.style.cursor =
@@ -218,6 +228,18 @@ export function CampusCanvas() {
       selectBuilding(hit);
       return;
     }
+
+    // 点空白分级：已有选中（建筑/标注）时，第一下只取消选中（画布软件惯例），
+    // 不弹创作窗，避免误触打断；再点一次空白才进入创作
+    if (selectedBuilding) {
+      selectBuilding(null);
+      return;
+    }
+    if (selectedId) {
+      selectAnnotation(null);
+      return;
+    }
+
     openCreateDialog(x, y);
   };
 
