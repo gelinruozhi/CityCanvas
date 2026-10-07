@@ -48,7 +48,7 @@ export const CAMPUS_BUILDINGS: CampusBuildingDef[] = [
   // ===== 服务与配套 =====
   { id: "activity", name: "文化活动中心", buildingType: "culture", x: 880, y: 1000, size: [160, 80], floorCount: 3 },
   { id: "shop", name: "校园超市", buildingType: "store", x: 765, y: 735, size: [70, 40], floorCount: 2 },
-  { id: "clinic", name: "医务室", buildingType: "store", x: 935, y: 255, size: [90, 50], floorCount: 1 },
+  { id: "clinic", name: "医务室", buildingType: "medical", x: 935, y: 255, size: [90, 50], floorCount: 1 },
 ];
 
 /** 景观湖 —— 五号公寓右上、第二餐厅上方（照卡通图） */

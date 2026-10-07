@@ -18,6 +18,7 @@ export type BuildingType =
   | "store"
   | "studyroom"
   | "logistics"
+  | "medical"
   // 设施小品（家具级）
   | "bench"
   | "lamp"
@@ -100,7 +101,8 @@ export const BUILDING_TYPES: BuildingTypeMeta[] = [
   { value: "cafe", group: "service", label: "咖啡店", emoji: "☕", color: "#a16207", hint: "咖啡馆、奶茶店、轻食吧、面包房" },
   { value: "store", group: "service", label: "便利店", emoji: "🏪", color: "#0284c7", hint: "超市、便利店、文具店、生活服务点" },
   { value: "studyroom", group: "service", label: "自习室", emoji: "📖", color: "#6366f1", hint: "24h 自习舱、共享自习空间、研讨小屋" },
-  { value: "logistics", group: "service", label: "快递医务", emoji: "📦", color: "#ef4444", hint: "快递柜、菜鸟驿站、医务室、心理咨询点" },
+  { value: "logistics", group: "service", label: "快递", emoji: "📦", color: "#ef4444", hint: "快递柜、菜鸟驿站、自助打印站" },
+  { value: "medical", group: "service", label: "医务", emoji: "🏥", color: "#e11d48", hint: "医务室、校医院、心理咨询点" },
 
   // ===== 设施小品（家具级）=====
   { value: "bench", group: "facility", label: "座椅", emoji: "🪑", color: "#78716c", hint: "排椅、长凳、户外座椅、休憩点" },

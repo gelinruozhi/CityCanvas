@@ -13,6 +13,7 @@ const COMPATIBLE_INDOOR: Partial<Record<BuildingType, BuildingType[]>> = {
   gym: ["gym", "vending", "store", "bench", "other"],
   culture: ["culture", "art", "cafe", "store", "vending", "other"],
   lab: ["studyroom", "store", "vending", "art", "other"],
+  medical: ["store", "vending", "art", "bench", "other"],
 };
 
 export function allowedIndoorTypes(buildingType: BuildingType): BuildingType[] | null {
@@ -38,6 +39,7 @@ export function indoorTypeHint(buildingType: BuildingType): string | null {
     gym: "体育馆内适合：运动空间、健身配套等",
     culture: "文化场馆内适合：展览、艺术装置、文创空间等",
     lab: "实验楼内适合：自习区、便利店配套等",
+    medical: "医务室内适合：自助取药、候诊配套、健康宣传设施等",
   };
   return hints[buildingType] ?? null;
 }
