@@ -8,6 +8,10 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const eslintConfig = [
+  {
+    // 忽略构建产物（否则 next lint 会扫到 .next 里的压缩文件）
+    ignores: [".next/**", "node_modules/**", "out/**", "next-env.d.ts"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {

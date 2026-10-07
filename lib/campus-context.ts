@@ -1,7 +1,7 @@
 /**
  * 山东财经大学圣井校区已知建筑/区域清单
  * 数据源：用户提供的校园平面图（多个版本综合整理）
- * 用途：AI 评估时作为上下文，让 Claude 理解校园的真实功能分布
+ * 用途：AI 评估时作为上下文，让 AI 理解校园的真实功能分布
  */
 export interface CampusFacility {
   name: string;

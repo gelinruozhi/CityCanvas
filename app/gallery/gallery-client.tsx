@@ -47,6 +47,13 @@ export function GalleryClient({ creations }: { creations: RawCreation[] }) {
   const [typeFilter, setTypeFilter] = useState<BuildingType | "all">("all");
   const [showAllTypes, setShowAllTypes] = useState(false);
 
+  // 高分排序需要每张卡的平均分 —— 一次预计算，避免排序比较器里反复 JSON.parse
+  const scoreById = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of creations) m.set(c.id, avgScore(c));
+    return m;
+  }, [creations]);
+
   const filtered = useMemo(() => {
     let arr = [...creations];
 
@@ -59,7 +66,9 @@ export function GalleryClient({ creations }: { creations: RawCreation[] }) {
     if (sort === "hot") {
       arr.sort((a, b) => b._count.likes - a._count.likes);
     } else if (sort === "top") {
-      arr.sort((a, b) => avgScore(b) - avgScore(a));
+      arr.sort(
+        (a, b) => (scoreById.get(b.id) ?? 0) - (scoreById.get(a.id) ?? 0)
+      );
     } else {
       arr.sort(
         (a, b) =>
@@ -67,7 +76,7 @@ export function GalleryClient({ creations }: { creations: RawCreation[] }) {
       );
     }
     return arr;
-  }, [creations, sort, typeFilter]);
+  }, [creations, sort, typeFilter, scoreById]);
 
   return (
     <>

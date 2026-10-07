@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { AnnotationDetailPanel } from "@/components/map/annotation-detail-panel";
 import { FabControls } from "@/components/map/fab-controls";
@@ -9,6 +10,7 @@ import { AnnotationsListPanel } from "@/components/map/annotations-list-panel";
 import { BuildingPanel } from "@/components/map/building-panel";
 import { KeyboardShortcuts } from "@/components/map/keyboard-shortcuts";
 import { UserBadge } from "@/components/user-badge";
+import { useAnnotationStore } from "@/lib/store/annotation-store";
 
 const CampusCanvas = dynamic(
   () => import("@/components/map/campus-canvas").then((m) => m.CampusCanvas),
@@ -26,6 +28,11 @@ const CampusCanvas = dynamic(
 );
 
 export function CreateClient() {
+  // 恢复本地草稿标注（挂载后执行，避免 SSR hydration mismatch）
+  useEffect(() => {
+    useAnnotationStore.persist.rehydrate();
+  }, []);
+
   return (
     <main className="fixed inset-0 overflow-hidden bg-zinc-950">
       <KeyboardShortcuts />

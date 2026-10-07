@@ -42,7 +42,7 @@ export function CampusCanvas() {
 
   const drawToolRef = useRef(drawTool);
   drawToolRef.current = drawTool;
-  // 调试/校准句柄：window.__ccMap = 地图实例
+  // 调试/校准句柄：window.__ccMap = 地图实例（rerender 引用稳定，仅挂载时执行一次）
   useEffect(() => {
     (window as any).__ccMap = {
       setZoomAndCenter: (z: number, c: [number, number]) => {
@@ -51,7 +51,7 @@ export function CampusCanvas() {
       },
       getZoom: () => viewRef.current.s,
     };
-  });
+  }, [rerender]);
   const drawStartRef = useRef<{ x: number; y: number } | null>(null);
   const [drawPreview, setDrawPreview] = useState<
     | { kind: "circle"; x: number; y: number; r: number }
@@ -60,6 +60,22 @@ export function CampusCanvas() {
   >(null);
   const panRef = useRef<{ sx: number; sy: number; cx: number; cy: number; moved: boolean } | null>(null);
   const [hoverBuilding, setHoverBuilding] = useState<string | null>(null);
+
+  // pan/绘制预览的重渲染按帧合并：pointermove 事件频率高于屏幕刷新率时避免重复渲染
+  const rafRef = useRef<number | null>(null);
+  const rerenderPerFrame = useCallback(() => {
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      rerender();
+    });
+  }, [rerender]);
+  useEffect(
+    () => () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     const el = containerRef.current;
@@ -92,16 +108,7 @@ export function CampusCanvas() {
     [size.w, size.h, view.cx, view.cy, view.s]
   );
 
-  // 初始 fit 全画布
-  useEffect(() => {
-    if (size.w < 100) return;
-    const s = Math.min(size.w / (CAMPUS_WIDTH + 120), size.h / (CAMPUS_HEIGHT + 120));
-    viewRef.current = { cx: CAMPUS_WIDTH / 2, cy: CAMPUS_HEIGHT / 2, s };
-    rerender();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size.w, size.h]);
-
-  // 室内模式：视野锁定到所选建筑内部（放大铺满屏幕）
+  // 视野：室外 fit 全画布 / 室内锁定所选建筑放大铺满
   const isIndoor = Boolean(indoorFloor && selectedBuilding);
   useEffect(() => {
     if (!size.w || size.w < 100) return;
@@ -130,7 +137,7 @@ export function CampusCanvas() {
       if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true;
       view.cx = pan.cx - dx / view.s;
       view.cy = pan.cy - dy / view.s;
-      rerender();
+      rerenderPerFrame();
       return;
     }
     if (drawStartRef.current && (drawTool === "circle" || drawTool === "rect")) {

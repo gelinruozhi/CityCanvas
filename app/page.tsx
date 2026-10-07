@@ -87,7 +87,7 @@ function Hero() {
         className="glass mb-8 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs text-zinc-200"
       >
         <Sparkles className="h-3.5 w-3.5 text-orange-400" />
-        <span>Claude AI 实时评估 · 真实校园地图</span>
+        <span>AI 实时评估 · 卡通校园画布</span>
       </motion.div>
 
       <motion.h1
@@ -96,7 +96,7 @@ function Hero() {
         transition={{ duration: 0.6, delay: 0.05 }}
         className="max-w-4xl text-balance text-5xl font-bold tracking-tight text-white md:text-7xl"
       >
-        在山财地图上
+        在山财画布上
         <br />
         <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-rose-500 bg-clip-text text-transparent">
           绘制你的理想校园
@@ -109,7 +109,7 @@ function Hero() {
         transition={{ duration: 0.6, delay: 0.15 }}
         className="mt-6 max-w-2xl text-balance text-lg text-zinc-300"
       >
-        在真实的校园地图上自由打点 — 添加一间咖啡馆、一座图书馆、一片绿地。
+        在卡通校园画布上自由打点 — 添加一间咖啡馆、一座图书馆、一片绿地。
         AI 会基于周边环境实时评估你的创意是否舒适、便捷、合理。
       </motion.p>
 
@@ -781,8 +781,8 @@ function ScoreBarLight({
 const STEPS = [
   {
     icon: MousePointerClick,
-    title: "点击地图任意位置",
-    desc: "在山财圣井校区的真实地图上，点击你想改造的角落。",
+    title: "点击画布任意位置",
+    desc: "在山财圣井校区的卡通画布上，点击你想改造的角落。",
     color: "from-orange-500 to-rose-500",
   },
   {
@@ -794,7 +794,7 @@ const STEPS = [
   {
     icon: Bot,
     title: "AI 即时评估并给建议",
-    desc: "Claude 综合周边真实建筑、人流和功能协同，给出舒适度+便捷度评分。",
+    desc: "AI 综合周边楼栋布局、人流和功能协同，给出舒适度+便捷度评分。",
     color: "from-emerald-500 to-teal-500",
   },
   {
@@ -860,13 +860,13 @@ function HowItWorks() {
 const FEATURES = [
   {
     icon: MapPin,
-    title: "真实校园地图",
-    desc: "高德 JS API 2.0 渲染，3D 视角 + 暗黑夜景，每一座教学楼都真实可感。",
+    title: "自绘卡通校园画布",
+    desc: "31 栋楼 + 路网 + 湖泊 + 运动场全部手绘还原，楼栋可点击进入楼层室内编辑。",
   },
   {
     icon: Sparkles,
-    title: "POI 锚定的 AI 评估",
-    desc: "Claude 看到的是真实周边建筑名（图书馆/教学楼/餐厅），不是抽象方位，评估精准到具体建议。",
+    title: "场景感知的 AI 评估",
+    desc: "AI 看到的是你标点周边的楼栋与区域（图书馆/教学楼/餐厅），按室内外场景分别评估，建议具体可落地。",
   },
   {
     icon: Heart,

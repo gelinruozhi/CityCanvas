@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -35,7 +36,8 @@ interface ParsedAnnotation {
   score: number | null;
 }
 
-export function CreationCard({
+/** memo：广场筛选/排序时未变化的卡片跳过重渲染（含整幅 MiniMap SVG） */
+export const CreationCard = memo(function CreationCard({
   creation,
   index,
 }: {
@@ -247,7 +249,7 @@ export function CreationCard({
       </Link>
     </motion.div>
   );
-}
+});
 
 /* ========== 紧凑型地图缩略图 ========== */
 

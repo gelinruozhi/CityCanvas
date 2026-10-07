@@ -137,6 +137,11 @@ export const getBuildingTypeMeta = (value: string): BuildingTypeMeta => {
   );
 };
 
+/** 全部合法 BuildingType 值（单一来源，供 zod enum 使用） */
+export const BUILDING_TYPE_VALUES = BUILDING_TYPES.map(
+  (t) => t.value
+) as [BuildingType, ...BuildingType[]];
+
 export interface AIScore {
   comfortScore: number;
   convenienceScore: number;

@@ -85,7 +85,7 @@ export default async function OG() {
               绘制你的理想校园
             </div>
             <div style={{ marginTop: 30, fontSize: 28, color: "#a1a1aa", maxWidth: 900 }}>
-              AI 驱动的校园 DIY 创意创作平台 · Claude 实时评估 · 社区共创
+              AI 驱动的校园 DIY 创意创作平台 · AI 实时评估 · 社区共创
             </div>
           </div>
         </div>

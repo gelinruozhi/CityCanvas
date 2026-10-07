@@ -172,12 +172,7 @@ export function CreateAnnotationDialog() {
                 <div className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
                   <div className="min-w-0 flex-1">
-                    {nearby === null ? (
-                      <span className="flex items-center gap-2 text-xs text-zinc-400">
-                        正在识别周边建筑
-                        <Loader2 className="h-3 w-3 animate-spin text-orange-400" />
-                      </span>
-                    ) : nearby.length > 0 ? (
+                    {nearby.length > 0 ? (
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                         <span className="flex items-center gap-1 font-medium text-orange-200">
                           <Navigation className="h-3 w-3" />

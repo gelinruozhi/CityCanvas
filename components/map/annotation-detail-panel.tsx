@@ -149,7 +149,7 @@ export function AnnotationDetailPanel() {
                 <Sparkles className="mx-auto mb-2 h-5 w-5 text-orange-400" />
                 <div className="text-sm text-zinc-300">让 AI 评估这个创意</div>
                 <div className="mt-1 text-xs text-zinc-500">
-                  Claude 会分析周边设施 + 人流 + 功能协同
+                  AI 会分析周边设施 + 人流 + 功能协同
                 </div>
               </div>
             )}

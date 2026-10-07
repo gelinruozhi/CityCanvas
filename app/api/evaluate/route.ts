@@ -2,31 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasApiKey } from "@/lib/ai/anthropic";
 import { evaluateAnnotation } from "@/lib/ai/evaluator";
-
-const BUILDING_TYPE_VALUES = [
-  "teaching",
-  "library",
-  "dorm",
-  "canteen",
-  "gym",
-  "culture",
-  "lab",
-  "field",
-  "court",
-  "park",
-  "plaza",
-  "parking",
-  "cafe",
-  "store",
-  "studyroom",
-  "logistics",
-  "bench",
-  "lamp",
-  "bike",
-  "vending",
-  "art",
-  "other",
-] as const;
+import { BUILDING_TYPE_VALUES } from "@/lib/types";
 
 const annotationSchema = z.object({
   x: z.number(),

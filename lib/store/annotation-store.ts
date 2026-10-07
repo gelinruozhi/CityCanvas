@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Annotation,
   AIScore,
@@ -78,18 +79,20 @@ function pushHistory(state: AnnotationStore): Pick<AnnotationStore, "past" | "fu
   return { past, future: [] };
 }
 
-export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
-  annotations: [],
-  selectedId: null,
-  isDarkMap: true,
-  isSatellite: false,
-  pendingPosition: null,
-  drawTool: "point",
-  isPublishOpen: false,
-  selectedBuilding: null,
-  indoorFloor: null,
-  past: [],
-  future: [],
+export const useAnnotationStore = create<AnnotationStore>()(
+  persist(
+    (set, get) => ({
+      annotations: [],
+      selectedId: null,
+      isDarkMap: true,
+      isSatellite: false,
+      pendingPosition: null,
+      drawTool: "point",
+      isPublishOpen: false,
+      selectedBuilding: null,
+      indoorFloor: null,
+      past: [],
+      future: [],
 
   addAnnotation: (data) => {
     const id = genId();
@@ -201,4 +204,15 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
   canUndo: () => get().past.length > 0,
   canRedo: () => get().future.length > 0,
-}));
+    }),
+    {
+      name: "citycanvas-draft",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      // 只持久化草稿标注；undo 栈/UI 状态不存。
+      // skipHydration：由 CreateClient 挂载后手动 rehydrate，避免 SSR hydration mismatch
+      partialize: (s) => ({ annotations: s.annotations }) as AnnotationStore,
+      skipHydration: true,
+    }
+  )
+);

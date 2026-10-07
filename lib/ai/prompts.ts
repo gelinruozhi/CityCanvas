@@ -16,7 +16,7 @@ ${BUILDING_TYPE_REFERENCE}
 # 🚨 空间推理铁律（违反这条规则视为重大错误，必须严格遵守）
 
 ## 唯一定位依据：用户消息里的"周边真实 POI 列表"
-- 这份列表来自高德地图，是用户标点 250m 内**实际存在的建筑**。
+- 这份列表来自校园画布数据，是用户标点附近的**实际楼栋**。
 - 你判断"标点位于校园哪个功能区"，必须、且仅能基于这份 POI 列表推理。
 
 ## 推理步骤（按顺序执行，不允许跳步）
@@ -136,7 +136,7 @@ export function buildEvaluatorUserPrompt(input: EvaluatorInput): string {
 - 覆盖范围：${a.shape === "circle" ? `半径 ${a.radius}m 的圆形区域` : a.shape === "rect" ? "矩形区域" : "单个点位"}${a.floor ? ` · 室内 ${a.buildingName ?? ""} ${a.floor}` : ""}
 - 校园位置：${input.zone}（画布坐标 x=${a.x.toFixed(0)}m, y=${a.y.toFixed(0)}m，原点在校园西南角）
 
-# ⭐ 周边真实建筑（高德 PlaceSearch，半径 250m，按距离排序）
+# ⭐ 周边建筑（画布楼栋，按距离排序）
 ${poiBlock}
 
 # 用户已创建的其他标点（半径 600m 内）
