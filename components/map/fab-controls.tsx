@@ -61,9 +61,9 @@ export function FabControls() {
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 280, damping: 28, delay: 0.15 }}
-        className="pointer-events-auto absolute bottom-6 left-24 z-20 flex flex-col gap-2"
+        className="pointer-events-auto absolute bottom-6 left-24 z-20 flex flex-col gap-2 self-start"
       >
-        <div className="flex flex-col gap-2 rounded-full border border-white/10 bg-zinc-950/70 p-1.5 backdrop-blur-xl">
+        <div className="flex w-fit flex-col gap-2 rounded-full border border-white/10 bg-zinc-950/70 p-1.5 backdrop-blur-xl">
           <ToolButton
             label="点位标注"
             active={drawTool === "point" && !drawing}
@@ -85,16 +85,12 @@ export function FabControls() {
           >
             <Square className="h-4 w-4" />
           </ToolButton>
+          {drawing && (
+            <ToolButton label="退出绘制 (Esc)" active onClick={() => setDrawTool("point")}>
+              <X className="h-4 w-4" />
+            </ToolButton>
+          )}
         </div>
-        {drawing && (
-          <button
-            onClick={() => setDrawTool("point")}
-            className="flex h-9 items-center gap-1.5 self-start rounded-full border border-orange-500/40 bg-orange-500/15 px-3 text-xs text-orange-300 backdrop-blur-xl transition hover:bg-orange-500/25"
-          >
-            <X className="h-3.5 w-3.5" />
-            退出绘制
-          </button>
-        )}
       </motion.div>
 
       <motion.div
