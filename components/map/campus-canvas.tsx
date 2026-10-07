@@ -192,7 +192,8 @@ export function CampusCanvas() {
       const [x, y] = unproj(e.clientX, e.clientY);
       if (tool === "circle") {
         const radius = Math.max(10, Math.round(Math.hypot(x - start.x, y - start.y)));
-        openCreateDialog((start.x + x) / 2, (start.y + y) / 2, { shape: "circle", radius });
+        // 圆心 = 按下的起点，与拖拽预览一致，松手后不位移
+        openCreateDialog(start.x, start.y, { shape: "circle", radius });
       } else {
         if (Math.abs(x - start.x) < 8 && Math.abs(y - start.y) < 8) return;
         openCreateDialog((start.x + x) / 2, (start.y + y) / 2, {
