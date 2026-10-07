@@ -144,12 +144,14 @@ export const useAnnotationStore = create<AnnotationStore>()(
   toggleSatellite: () => set((s) => ({ isSatellite: !s.isSatellite })),
 
   setDrawTool: (tool) =>
-    set((s) => ({
-      drawTool: s.drawTool === tool ? "point" : tool,
+    // 不做"再点一次取消"的 toggle——选中态已在按钮上可见，
+    // 重复点击同一工具保持激活，避免误触把矩形悄悄切回点位导致"画不了"
+    set({
+      drawTool: tool,
       pendingPosition: null,
       selectedBuilding: null,
       indoorFloor: null,
-    })),
+    }),
 
   openCreateDialog: (x, y, extra) =>
     set({

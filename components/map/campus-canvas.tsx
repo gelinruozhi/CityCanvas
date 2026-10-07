@@ -181,14 +181,24 @@ export function CampusCanvas() {
     downClientRef.current = null;
     setDrawPreview(null);
   };
-  const onPointerUp = (e: React.PointerEvent) => {
-    const tool = drawToolRef.current;
-    const start = drawStartRef.current;
-    if (start && (tool === "circle" || tool === "rect")) {
-      // 拖拽结束 = 完成；几乎没拖动视为误触，静默取消
+  const onPointerUp = () => (panRef.current = null);
+  const onPointerLeave = () => (panRef.current = null);
+
+  // 绘制完成统一在 window 级 pointerup 兜底：即便拖出画布/快速甩出后松手，
+  // 也不会残留 drawStart 把后续交互卡死（此前矩形"无法画"的根源之一）
+  useEffect(() => {
+    const finish = (e: PointerEvent) => {
+      const start = drawStartRef.current;
+      const tool = drawToolRef.current;
       const down = downClientRef.current;
       cancelDraw();
-      if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6) return;
+      if (!start || !down) return;
+      if (tool !== "circle" && tool !== "rect") return;
+      // 松手点必须还在画布视口内，否则视为放弃
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect || e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+      // 误触保护：几乎没拖动视为点击误触
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6) return;
       const [x, y] = unproj(e.clientX, e.clientY);
       if (tool === "circle") {
         const radius = Math.max(10, Math.round(Math.hypot(x - start.x, y - start.y)));
@@ -204,15 +214,10 @@ export function CampusCanvas() {
           },
         });
       }
-      return;
-    }
-    panRef.current = null;
-  };
-  const onPointerLeave = () => {
-    panRef.current = null;
-    // 拖拽绘制中拖出画布 → 取消本次绘制
-    if (drawStartRef.current) cancelDraw();
-  };
+    };
+    window.addEventListener("pointerup", finish);
+    return () => window.removeEventListener("pointerup", finish);
+  });
   const onWheel = (e: React.WheelEvent) => {
     const factor = Math.pow(1.1, -e.deltaY / 100);
     const next = Math.min(6, Math.max(0.3, view.s * factor));
