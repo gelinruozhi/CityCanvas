@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
 import {
   CAMPUS_BUILDINGS,
@@ -12,6 +13,7 @@ import {
   CAMPUS_GREENS,
   CAMPUS_FIELDS,
 } from "@/lib/campus/map-data";
+import { IndoorFloorPlan } from "@/components/map/indoor-floor-plan";
 import { getBuildingTypeMeta } from "@/lib/types";
 import type { Annotation, ShapeBounds } from "@/lib/types";
 
@@ -191,6 +193,19 @@ export function CampusCanvas() {
       return;
     }
 
+    // 室内模式：只允许在楼层平面内部添加创意
+    if (isIndoor && selectedBuilding) {
+      const b = selectedBuilding;
+      const inRoom =
+        Math.abs(x - b.x) <= b.size[0] / 2 && Math.abs(y - b.y) <= b.size[1] / 2;
+      if (!inRoom) {
+        toast.info("室内模式：请点击楼层平面内部添加创意", {
+          description: "想改楼外区域？先点「返回室外」",
+        });
+        return;
+      }
+    }
+
     const hit = CAMPUS_BUILDINGS.find((b) => {
       const hw = b.size[0] / 2 + 6;
       const hh = b.size[1] / 2 + 6;
@@ -229,15 +244,26 @@ export function CampusCanvas() {
           </pattern>
         </defs>
 
-        {/* 室内模式背景：该楼内部平面 */}
+        {/* 室内模式背景：该楼内部楼层平面 */}
         {isIndoor && (
           <>
             <rect width={size.w} height={size.h} fill="url(#indoor-tex)" />
-            <rect x={30} y={30} width={size.w - 60} height={size.h - 60} rx={10} fill="#f6ecd8" stroke="#a8895f" strokeWidth={3} />
-            {labelVisible && (
-              <text x={size.w / 2} y={70} textAnchor="middle" style={{ fontSize: 24, fontWeight: 700, fill: "#5a4630" }}>
-                {selectedBuilding?.name} · {indoorFloor} 室内
-              </text>
+            {selectedBuilding && indoorFloor && (
+              <IndoorFloorPlan building={selectedBuilding} floor={indoorFloor} proj={proj} s={view.s} />
+            )}
+            {labelVisible && selectedBuilding && indoorFloor && (
+              (() => {
+                const title = `${selectedBuilding.name} · ${indoorFloor} 室内`;
+                const tw = title.length * 15 + 44;
+                return (
+                  <g className="pointer-events-none">
+                    <rect x={size.w / 2 - tw / 2} y={34} width={tw} height={38} rx={19} fill="rgba(24,24,27,0.82)" stroke="rgba(255,255,255,0.12)" />
+                    <text x={size.w / 2} y={58} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, fill: "#f4e9d8" }}>
+                      {title}
+                    </text>
+                  </g>
+                );
+              })()
             )}
           </>
         )}
