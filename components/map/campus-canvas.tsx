@@ -4,11 +4,13 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useAnnotationStore } from "@/lib/store/annotation-store";
 import {
   CAMPUS_BUILDINGS,
-  CAMPUS_ROADS,
-  CAMPUS_LAKE,
-  CAMPUS_GREENS,
   CAMPUS_WIDTH,
   CAMPUS_HEIGHT,
+  CAMPUS_ROADS,
+  CAMPUS_LAKE,
+  CAMPUS_PLAZA,
+  CAMPUS_GREENS,
+  CAMPUS_FIELDS,
 } from "@/lib/campus/map-data";
 import { getBuildingTypeMeta } from "@/lib/types";
 import type { Annotation, ShapeBounds } from "@/lib/types";
@@ -194,16 +196,6 @@ export function CampusCanvas() {
     openCreateDialog(x, y);
   };
 
-  // ===== 树丛装饰（确定性伪随机） =====
-  const trees: Array<[number, number, number]> = [];
-  for (const g of CAMPUS_GREENS) {
-    for (let i = 0; i < 5; i++) {
-      const tx = g.x + g.w * (0.2 + 0.6 * ((i * 0.37) % 1));
-      const ty = g.y + g.h * (0.25 + 0.55 * ((i * 0.61) % 1));
-      trees.push([tx, ty, 9 + ((i * 7) % 5)]);
-    }
-  }
-
   const labelVisible = view.s > 0.4;
 
   return (
@@ -243,106 +235,86 @@ export function CampusCanvas() {
           </>
         )}
 
-        {/* 室外模式背景 */}
+        {/* 室外模式背景：自绘草地 + 绿地/湖/广场/道路 */}
         {!isIndoor && (
           <>
-            {/* 草地底 */}
-            <rect width={size.w} height={size.h} fill="#9ec994" />
+            <rect width={size.w} height={size.h} fill="#a8d08d" />
             <rect width={size.w} height={size.h} fill="url(#grass-tex)" />
 
-            {/* 校园地块边界 */}
-            {(() => {
-              const [x1, y1] = proj(20, 30);
-              const [x2, y2] = proj(CAMPUS_WIDTH - 20, CAMPUS_HEIGHT - 20);
-              return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#a5cf9a" stroke="#7ba36f" strokeWidth={3} rx={10} />;
-            })()}
-
-            {/* 绿地块 */}
+            {/* 绿地树丛 */}
             {CAMPUS_GREENS.map((g, i) => {
               const [gx, gy] = proj(g.x, g.y);
-              return <rect key={i} x={gx} y={gy} width={g.w * view.s} height={g.h * view.s} fill="#8cc282" rx={20} opacity={0.9} />;
+              return (
+                <rect
+                  key={`g${i}`}
+                  x={gx - (g.w / 2) * view.s}
+                  y={gy - (g.h / 2) * view.s}
+                  width={g.w * view.s}
+                  height={g.h * view.s}
+                  rx={Math.max(4, 16 * view.s)}
+                  fill="#8fc98a"
+                  stroke="#6db26c"
+                  strokeWidth={2}
+                  opacity={0.9}
+                />
+              );
+            })}
+
+            {/* 景观湖 */}
+            <ellipse
+              cx={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[0]}
+              cy={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[1]}
+              rx={CAMPUS_LAKE.rx * view.s}
+              ry={CAMPUS_LAKE.ry * view.s}
+              fill="#7cc3e8"
+              stroke="#4d9fd0"
+              strokeWidth={2.5}
+            />
+            <ellipse
+              cx={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[0] - 6 * view.s}
+              cy={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[1] - 4 * view.s}
+              rx={CAMPUS_LAKE.rx * 0.62 * view.s}
+              ry={CAMPUS_LAKE.ry * 0.55 * view.s}
+              fill="#93d1ef"
+              opacity={0.8}
+            />
+
+            {/* 中央广场 */}
+            <ellipse
+              cx={proj(CAMPUS_PLAZA.x, CAMPUS_PLAZA.y)[0]}
+              cy={proj(CAMPUS_PLAZA.x, CAMPUS_PLAZA.y)[1]}
+              r={CAMPUS_PLAZA.r * view.s}
+              fill="#e9dfc4"
+              stroke="#c9b98f"
+              strokeWidth={2.5}
+            />
+
+            {/* 道路：土色描边 + 米白路面 */}
+            {CAMPUS_ROADS.map((r, i) => {
+              const d = r.pts
+                .map((p, j) => `${j === 0 ? "M" : "L"}${proj(p[0], p[1])[0]},${proj(p[0], p[1])[1]}`)
+                .join(" ");
+              return (
+                <g key={`r${i}`} className="pointer-events-none">
+                  <path d={d} fill="none" stroke="#cdbb92" strokeWidth={r.width * view.s + 3} strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={d} fill="none" stroke="#fdf6e3" strokeWidth={r.width * view.s} strokeLinecap="round" strokeLinejoin="round" />
+                </g>
+              );
             })}
           </>
-        )}
-
-        {/* 湖 */}
-        <ellipse
-          cx={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[0]}
-          cy={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[1]}
-          rx={CAMPUS_LAKE.rx * view.s}
-          ry={CAMPUS_LAKE.ry * view.s}
-          fill="#7cc3e8"
-          stroke="#4d9fd0"
-          strokeWidth={3}
-        />
-        <ellipse
-          cx={proj(CAMPUS_LAKE.x - 12, CAMPUS_LAKE.y - 6)[0]}
-          cy={proj(CAMPUS_LAKE.x - 12, CAMPUS_LAKE.y - 6)[1]}
-          rx={CAMPUS_LAKE.rx * 0.5 * view.s}
-          ry={CAMPUS_LAKE.ry * 0.4 * view.s}
-          fill="#a5d8f2"
-        />
-        {labelVisible && (
-          <text
-            x={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[0]}
-            y={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[1] + 5}
-            textAnchor="middle"
-            className="pointer-events-none select-none"
-            style={{ fontSize: 13, fontWeight: 700, fill: "#1a5276", paintOrder: "stroke", stroke: "#d6ecf8", strokeWidth: 3 }}
-          >
-            景观湖
-          </text>
         )}
 
         {/* 室外专属元素：道路/运动场/树丛/楼栋 —— 室内模式隐藏 */}
         {!isIndoor && (
           <>
-        {/* 道路：灰白路带 + 边 */}
-        {CAMPUS_ROADS.map((r, i) => (
-          <g key={i}>
-            <polyline
-              points={r.pts.map(([x, y]) => proj(x, y).join(",")).join(" ")}
-              fill="none"
-              stroke="#c8c4b8"
-              strokeWidth={(r.width + 4) * view.s}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <polyline
-              points={r.pts.map(([x, y]) => proj(x, y).join(",")).join(" ")}
-              fill="none"
-              stroke="#f2efe6"
-              strokeWidth={r.width * view.s}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </g>
-        ))}
 
         {/* 运动场：橙红跑道 + 绿茵 */}
-        {CAMPUS_BUILDINGS.filter((b) => b.buildingType === "field").map((b) => {
-          const [cx, cy] = proj(b.x, b.y);
-          const sel = selectedBuilding?.id === b.id;
+        {CAMPUS_FIELDS.map((f) => {
+          const [cx, cy] = proj(f.x, f.y);
           return (
-            <g key={b.id} onClick={() => selectBuilding(b)} className="cursor-pointer">
-              <ellipse
-                cx={cx}
-                cy={cy}
-                rx={(b.size[0] / 2) * view.s}
-                ry={(b.size[1] / 2) * view.s}
-                fill="#f0b26a"
-                stroke={sel ? "#e2622b" : "#d98f4e"}
-                strokeWidth={sel ? 4 : 2.5}
-              />
-              <ellipse
-                cx={cx}
-                cy={cy}
-                rx={Math.max(0, (b.size[0] / 2 - 12) * view.s)}
-                ry={Math.max(0, (b.size[1] / 2 - 9) * view.s)}
-                fill="#8bc98a"
-                stroke="#5da85c"
-                strokeWidth={1.5}
-              />
+            <g key={f.id} className="pointer-events-none">
+              <ellipse cx={cx} cy={cy} rx={f.rx * view.s} ry={f.ry * view.s} fill="#f0b26a" stroke="#d98f4e" strokeWidth={2.5} />
+              <ellipse cx={cx} cy={cy} rx={Math.max(0, (f.rx - 12) * view.s)} ry={Math.max(0, (f.ry - 9) * view.s)} fill="#8bc98a" stroke="#5da85c" strokeWidth={1.5} />
               {labelVisible && (
                 <text
                   x={cx}
@@ -351,21 +323,9 @@ export function CampusCanvas() {
                   className="pointer-events-none select-none"
                   style={{ fontSize: 13, fontWeight: 700, fill: "#2d5a2a", paintOrder: "stroke", stroke: "#eaf5df", strokeWidth: 3 }}
                 >
-                  {b.name}
+                  {f.name}
                 </text>
               )}
-            </g>
-          );
-        })}
-
-        {/* 树丛 */}
-        {trees.map(([tx, ty, r], i) => {
-          const [px, py] = proj(tx, ty);
-          if (px < -20 || px > size.w + 20 || py < -20 || py > size.h + 20) return null;
-          return (
-            <g key={`t${i}`} className="pointer-events-none">
-              <circle cx={px} cy={py} r={r * view.s} fill="#5da85c" />
-              <circle cx={px - r * view.s * 0.25} cy={py - r * view.s * 0.25} r={r * 0.7 * view.s} fill="#72b86e" />
             </g>
           );
         })}

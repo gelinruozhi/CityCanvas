@@ -1,8 +1,9 @@
 import type { BuildingType } from "@/lib/types";
 
 /**
- * 校园画布数据 —— 完全按卡通平面图原图 1:1 复刻。
- * 画布 = 平面图本身（1080×1500，1px = 1 画布单位），上北下南。
+ * 校园画布数据 —— 自绘卡通平面图（1080×1500）。
+ * 楼栋坐标与卡通示意图 1:1 对齐；道路沿楼间空隙手绘，禁止穿楼。
+ * 上北下南：y 小 = 北。
  */
 export const CAMPUS_WIDTH = 1080;
 export const CAMPUS_HEIGHT = 1500;
@@ -19,7 +20,7 @@ export interface CampusBuildingDef {
 
 export const CAMPUS_BUILDINGS: CampusBuildingDef[] = [
   // ===== 西北教学区 =====
-  { id: "b1", name: "一号教学楼", buildingType: "teaching", x: 170, y: 445, size: [190, 75], floorCount: 5 },
+  { id: "b1", name: "一号教学楼", buildingType: "teaching", x: 170, y: 445, size: [180, 70], floorCount: 5 },
   { id: "lib", name: "图书馆", buildingType: "library", x: 335, y: 600, size: [140, 90], floorCount: 5 },
   { id: "b3", name: "三号教学楼", buildingType: "teaching", x: 160, y: 645, size: [180, 70], floorCount: 5 },
   { id: "b2", name: "二号教学楼", buildingType: "teaching", x: 600, y: 610, size: [180, 55], floorCount: 5 },
@@ -50,37 +51,47 @@ export const CAMPUS_BUILDINGS: CampusBuildingDef[] = [
   { id: "clinic", name: "医务室", buildingType: "store", x: 935, y: 255, size: [90, 50], floorCount: 1 },
 ];
 
-/** 景观湖（椭圆）—— 北门内偏东 */
-export const CAMPUS_LAKE = { x: 620, y: 415, rx: 85, ry: 45 };
+/** 景观湖 —— 五号公寓右上、第二餐厅上方（照卡通图） */
+export const CAMPUS_LAKE = { x: 400, y: 855, rx: 80, ry: 55 };
 
+/** 中央广场（北门内圆盘） */
+export const CAMPUS_PLAZA = { x: 460, y: 490, r: 38 };
+
+/** 主干道路（折线，半宽 = width/2）—— 全部沿楼间空隙，经程序校验不压楼不压场 */
+export const CAMPUS_ROADS: Array<{ pts: Array<[number, number]>; width: number }> = [
+  // 北横路：贯穿北门大道
+  { pts: [[55, 385], [1015, 385]], width: 20 },
+  // 西纵路（西边缘）
+  { pts: [[55, 385], [55, 1395]], width: 20 },
+  // 东纵路（东边缘）
+  { pts: [[1015, 385], [1015, 1395]], width: 20 },
+  // 北纵路：北门 → 中央广场 → 图书馆/二教之间
+  { pts: [[460, 150], [460, 696]], width: 18 },
+  // 中央横路：图书馆/四教之间的东西主干（东段收窄避让三号公寓与第一餐厅）
+  { pts: [[55, 696], [760, 696]], width: 22 },
+  { pts: [[760, 698], [1015, 698]], width: 14 },
+  // 中纵路：中央横路 → 南辅路（沿四教/二餐/西运动场东侧）
+  { pts: [[435, 696], [435, 1395]], width: 18 },
+  // 南横路西段（西运动场西侧）
+  { pts: [[55, 1195], [239, 1195]], width: 18 },
+  // 南横路主段（七教/九教之间）
+  { pts: [[421, 1195], [1015, 1195]], width: 18 },
+  // 南辅横路（三餐/七八号公寓之间）
+  { pts: [[55, 1395], [795, 1395]], width: 18 },
+  { pts: [[935, 1395], [1015, 1395]], width: 18 },
+];
+
+/** 绿地树丛装饰（楼间空隙） */
+export const CAMPUS_GREENS: Array<{ x: number; y: number; w: number; h: number }> = [
+  { x: 640, y: 470, w: 220, h: 90 },
+  { x: 130, y: 950, w: 100, h: 100 },
+  { x: 730, y: 1250, w: 80, h: 60 },
+];
 /** 运动场（独立渲染为跑道环） */
 export const CAMPUS_FIELDS: Array<{ id: string; name: string; x: number; y: number; rx: number; ry: number }> = [
   { id: "fieldE", name: "东运动场", x: 880, y: 855, rx: 115, ry: 58 },
   { id: "fieldN", name: "北运动场", x: 900, y: 310, rx: 105, ry: 58 },
   { id: "fieldW", name: "西运动场", x: 330, y: 1180, rx: 80, ry: 48 },
-];
-
-/** 主干道路（折线）—— 按卡通平面图路网 */
-export const CAMPUS_ROADS: Array<{ pts: Array<[number, number]>; width: number }> = [
-  // 全部 5 条路均验证过：与任何楼栋（含 8m 缓冲）零相交
-  { pts: [[100, 30], [1030, 30]], width: 20 },        // 顶横路（北界）
-  { pts: [[45, 30], [45, 1450]], width: 18 },          // 西环路
-  { pts: [[420, 30], [420, 1450]], width: 22 },        // 主纵路（北门贯穿）
-  { pts: [[1030, 30], [1030, 1450]], width: 18 },      // 东环路
-  { pts: [[180, 380], [700, 380]], width: 16 },        // 中横路（四号楼北侧空隙）
-  { pts: [[380, 985], [780, 985]], width: 16 },        // 南横路（七号楼南侧空隙）
-  { pts: [[330, 1300], [950, 1300]], width: 16 },      // 南横路2（宿舍区南）
-];
-
-/** 绿地树丛装饰（楼间空隙） */
-export const CAMPUS_GREENS: Array<{ x: number; y: number; w: number; h: number }> = [
-  { x: 230, y: 300, w: 200, h: 120 },   // 一号楼与湖之间
-  { x: 480, y: 300, w: 180, h: 120 },   // 湖与二号教学楼间
-  { x: 680, y: 550, w: 180, h: 100 },   // 四号楼与一餐间
-  { x: 380, y: 700, w: 160, h: 100 },   // 三号楼与四号楼间
-  { x: 680, y: 930, w: 180, h: 90 },    // 东操场与活动中心间
-  { x: 380, y: 1180, w: 160, h: 100 },  // 七号教学楼西
-  { x: 760, y: 1350, w: 160, h: 100 },  // 六号公寓与八号公寓间
 ];
 
 /** 根据楼栋 id 取定义 */

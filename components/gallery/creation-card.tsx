@@ -11,11 +11,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getBuildingTypeMeta } from "@/lib/types";
-import {
-  CAMPUS_BUILDINGS,
-  CAMPUS_GREENS,
-  CAMPUS_ROADS,
-} from "@/lib/campus/map-data";
+import { CAMPUS_BUILDINGS, CAMPUS_ROADS, CAMPUS_LAKE, CAMPUS_FIELDS } from "@/lib/campus/map-data";
 import type { BuildingType } from "@/lib/types";
 
 interface CardCreation {
@@ -283,19 +279,20 @@ function MiniMapPreview({
         preserveAspectRatio="xMidYMid slice"
       >
         <rect width={700} height={1400} fill="#0d1a12" />
-        {CAMPUS_GREENS.map((g, i) => (
-          <rect key={`g${i}`} x={g.x} y={1400 - g.y - g.h} width={g.w} height={g.h} fill="#16301f" rx={10} />
-        ))}
         {CAMPUS_ROADS.map((r, i) => (
-          <polyline
+          <path
             key={`r${i}`}
-            points={r.pts.map(([x, y]) => `${x},${1400 - y}`).join(" ")}
+            d={r.pts.map((p, j) => `${j === 0 ? "M" : "L"}${p[0]},${1400 - p[1]}`).join(" ")}
             fill="none"
-            stroke="#2e3a33"
+            stroke="#2e3226"
             strokeWidth={r.width}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+        ))}
+        <ellipse cx={CAMPUS_LAKE.x} cy={1400 - CAMPUS_LAKE.y} rx={CAMPUS_LAKE.rx} ry={CAMPUS_LAKE.ry} fill="#16323f" stroke="#245060" strokeWidth={2} />
+        {CAMPUS_FIELDS.map((f) => (
+          <ellipse key={`fd-${f.id}`} cx={f.x} cy={1400 - f.y} rx={f.rx} ry={f.ry} fill="#241f16" stroke="#4a3c28" strokeWidth={3} />
         ))}
         {CAMPUS_BUILDINGS.filter((b) => b.buildingType !== "field").map((b) => (
           <rect

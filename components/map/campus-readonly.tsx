@@ -5,9 +5,9 @@ import {
   CAMPUS_BUILDINGS,
   CAMPUS_ROADS,
   CAMPUS_LAKE,
+  CAMPUS_PLAZA,
   CAMPUS_GREENS,
-  CAMPUS_WIDTH,
-  CAMPUS_HEIGHT,
+  CAMPUS_FIELDS,
 } from "@/lib/campus/map-data";
 import { getBuildingTypeMeta } from "@/lib/types";
 
@@ -112,44 +112,64 @@ export function CampusReadonly({
       onPointerLeave={() => (panRef.current = null)}
     >
       <svg width={size.w} height={size.h} className="block">
-        <rect width={size.w} height={size.h} fill="#0a0a0c" />
-        <rect {...pxRect(0, 0, CAMPUS_WIDTH, CAMPUS_HEIGHT)} fill="#12211a" stroke="#27272a" strokeWidth={2} rx={14} />
-        {CAMPUS_GREENS.map((g, i) => (
-          <rect key={i} {...pxRect(g.x, g.y, g.w, g.h)} fill="#153122" rx={18} />
-        ))}
+        {/* 自绘深色底：草地 + 绿地/湖/广场/道路 */}
+        <rect x={-5000} y={-5000} width={12000} height={12000} fill="#16211a" />
+        {CAMPUS_GREENS.map((g, i) => {
+          const [gx, gy] = proj(g.x, g.y);
+          return (
+            <rect
+              key={`g${i}`}
+              x={gx - (g.w / 2) * view.s}
+              y={gy - (g.h / 2) * view.s}
+              width={g.w * view.s}
+              height={g.h * view.s}
+              rx={Math.max(3, 16 * view.s)}
+              fill="#1f3a26"
+              stroke="#2c5236"
+              strokeWidth={1.5}
+            />
+          );
+        })}
         <ellipse
           cx={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[0]}
           cy={proj(CAMPUS_LAKE.x, CAMPUS_LAKE.y)[1]}
           rx={CAMPUS_LAKE.rx * view.s}
           ry={CAMPUS_LAKE.ry * view.s}
-          fill="#0c4a6e"
-          stroke="#155e75"
+          fill="#1d3a4a"
+          stroke="#2f5a72"
+          strokeWidth={2}
         />
-        {CAMPUS_ROADS.map((r, i) => (
-          <polyline
-            key={i}
-            points={r.pts.map(([x, y]) => proj(x, y).join(",")).join(" ")}
-            fill="none"
-            stroke="#3f3f46"
-            strokeWidth={r.width * view.s}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ))}
-        {CAMPUS_BUILDINGS.filter((b) => b.buildingType === "field").map((b) => {
-          const [cx, cy] = proj(b.x, b.y);
+        <ellipse
+          cx={proj(CAMPUS_PLAZA.x, CAMPUS_PLAZA.y)[0]}
+          cy={proj(CAMPUS_PLAZA.x, CAMPUS_PLAZA.y)[1]}
+          r={CAMPUS_PLAZA.r * view.s}
+          fill="#2e2c22"
+          stroke="#4a4636"
+          strokeWidth={2}
+        />
+        {CAMPUS_ROADS.map((r, i) => {
+          const d = r.pts
+            .map((p, j) => `${j === 0 ? "M" : "L"}${proj(p[0], p[1])[0]},${proj(p[0], p[1])[1]}`)
+            .join(" ");
           return (
-            <g key={b.id}>
-              <ellipse
-                cx={cx}
-                cy={cy}
-                rx={(b.size[0] / 2) * view.s}
-                ry={(b.size[1] / 2) * view.s}
-                fill="#1d2b22"
-                stroke="#3f6148"
-                strokeWidth={1.5}
-              />
-              <ellipse cx={cx} cy={cy} rx={((b.size[0] / 2) - 8) * view.s} ry={((b.size[1] / 2) - 6) * view.s} fill="#1a3a2a" />
+            <path
+              key={`r${i}`}
+              d={d}
+              fill="none"
+              stroke="#3d3a2e"
+              strokeWidth={r.width * view.s}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          );
+        })}
+        {/* 运动场 */}
+        {CAMPUS_FIELDS.map((f) => {
+          const [cx, cy] = proj(f.x, f.y);
+          return (
+            <g key={f.id}>
+              <ellipse cx={cx} cy={cy} rx={f.rx * view.s} ry={f.ry * view.s} fill="#3a2c1c" stroke="#5c4630" strokeWidth={1.5} />
+              <ellipse cx={cx} cy={cy} rx={Math.max(0, (f.rx - 12) * view.s)} ry={Math.max(0, (f.ry - 9) * view.s)} fill="#1d3a2a" />
             </g>
           );
         })}
@@ -237,9 +257,4 @@ export function CampusReadonly({
     </div>
   );
 
-  function pxRect(x: number, y: number, w: number, h: number) {
-    const [px1, py1] = proj(x, y + h);
-    const [px2, py2] = proj(x + w, y);
-    return { x: px1, y: py1, width: px2 - px1, height: py1 - py2 };
-  }
 }
