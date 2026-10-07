@@ -193,7 +193,8 @@ export function CampusCanvas() {
       return;
     }
 
-    // 室内模式：只允许在楼层平面内部添加创意
+    // 室内模式：楼内点击直接进入创作（跳过建筑命中——命中的只会是自己这栋楼），
+    // 楼外点击拦截并提示
     if (isIndoor && selectedBuilding) {
       const b = selectedBuilding;
       const inRoom =
@@ -204,6 +205,8 @@ export function CampusCanvas() {
         });
         return;
       }
+      openCreateDialog(x, y);
+      return;
     }
 
     const hit = CAMPUS_BUILDINGS.find((b) => {
