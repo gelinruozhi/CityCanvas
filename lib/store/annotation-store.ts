@@ -162,7 +162,9 @@ export const useAnnotationStore = create<AnnotationStore>()(
       },
     }),
   closeCreateDialog: () =>
-    set({ pendingPosition: null, drawTool: "point" }),
+    // 保留 drawTool：关闭弹窗不退出绘制模式，方便连续画多个形状；
+    // 退出绘制走 FAB「退出绘制」按钮或 Esc 退出链
+    set({ pendingPosition: null }),
 
   selectBuilding: (building) =>
     set({

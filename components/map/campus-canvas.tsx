@@ -15,7 +15,7 @@ import {
 } from "@/lib/campus/map-data";
 import { IndoorFloorPlan } from "@/components/map/indoor-floor-plan";
 import { getBuildingTypeMeta } from "@/lib/types";
-import type { Annotation, ShapeBounds } from "@/lib/types";
+import type { Annotation } from "@/lib/types";
 
 function scoreToColor(score: number | null | undefined): string {
   if (score == null) return "#e2622b";
@@ -55,6 +55,7 @@ export function CampusCanvas() {
     };
   }, [rerender]);
   const drawStartRef = useRef<{ x: number; y: number } | null>(null);
+  const downClientRef = useRef<{ x: number; y: number } | null>(null);
   const [drawPreview, setDrawPreview] = useState<
     | { kind: "circle"; x: number; y: number; r: number }
     | { kind: "rect"; sw: [number, number]; ne: [number, number] }
@@ -139,6 +140,15 @@ export function CampusCanvas() {
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    const tool = drawToolRef.current;
+    if (tool === "circle" || tool === "rect") {
+      // 截图式拖拽绘制：按下即起点，拖动出预览，松开完成（此模式不平移画布）
+      const [x, y] = unproj(e.clientX, e.clientY);
+      downClientRef.current = { x: e.clientX, y: e.clientY };
+      drawStartRef.current = { x, y };
+      panRef.current = null;
+      return;
+    }
     panRef.current = { sx: e.clientX, sy: e.clientY, cx: view.cx, cy: view.cy, moved: false };
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -152,10 +162,10 @@ export function CampusCanvas() {
       rerenderPerFrame();
       return;
     }
-    if (drawStartRef.current && (drawTool === "circle" || drawTool === "rect")) {
+    if (drawStartRef.current && (drawToolRef.current === "circle" || drawToolRef.current === "rect")) {
       const [x, y] = unproj(e.clientX, e.clientY);
       const start = drawStartRef.current;
-      if (drawTool === "circle") {
+      if (drawToolRef.current === "circle") {
         setDrawPreview({ kind: "circle", x: start.x, y: start.y, r: Math.max(5, Math.hypot(x - start.x, y - start.y)) });
       } else {
         setDrawPreview({
@@ -166,7 +176,42 @@ export function CampusCanvas() {
       }
     }
   };
-  const onPointerUp = () => (panRef.current = null);
+  const cancelDraw = () => {
+    drawStartRef.current = null;
+    downClientRef.current = null;
+    setDrawPreview(null);
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const tool = drawToolRef.current;
+    const start = drawStartRef.current;
+    if (start && (tool === "circle" || tool === "rect")) {
+      // 拖拽结束 = 完成；几乎没拖动视为误触，静默取消
+      const down = downClientRef.current;
+      cancelDraw();
+      if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6) return;
+      const [x, y] = unproj(e.clientX, e.clientY);
+      if (tool === "circle") {
+        const radius = Math.max(10, Math.round(Math.hypot(x - start.x, y - start.y)));
+        openCreateDialog((start.x + x) / 2, (start.y + y) / 2, { shape: "circle", radius });
+      } else {
+        if (Math.abs(x - start.x) < 8 && Math.abs(y - start.y) < 8) return;
+        openCreateDialog((start.x + x) / 2, (start.y + y) / 2, {
+          shape: "rect",
+          bounds: {
+            sw: [Math.min(start.x, x), Math.min(start.y, y)],
+            ne: [Math.max(start.x, x), Math.max(start.y, y)],
+          },
+        });
+      }
+      return;
+    }
+    panRef.current = null;
+  };
+  const onPointerLeave = () => {
+    panRef.current = null;
+    // 拖拽绘制中拖出画布 → 取消本次绘制
+    if (drawStartRef.current) cancelDraw();
+  };
   const onWheel = (e: React.WheelEvent) => {
     const factor = Math.pow(1.1, -e.deltaY / 100);
     const next = Math.min(6, Math.max(0.3, view.s * factor));
@@ -182,26 +227,7 @@ export function CampusCanvas() {
     const [x, y] = unproj(e.clientX, e.clientY);
     const tool = drawToolRef.current;
 
-    if (tool === "circle" || tool === "rect") {
-      if (!drawStartRef.current) {
-        drawStartRef.current = { x, y };
-        return;
-      }
-      const start = drawStartRef.current;
-      drawStartRef.current = null;
-      setDrawPreview(null);
-      if (tool === "circle") {
-        const radius = Math.max(10, Math.round(Math.hypot(x - start.x, y - start.y)));
-        openCreateDialog((start.x + x) / 2, (start.y + y) / 2, { shape: "circle", radius });
-      } else {
-        const bounds: ShapeBounds = {
-          sw: [Math.min(start.x, x), Math.min(start.y, y)],
-          ne: [Math.max(start.x, x), Math.max(start.y, y)],
-        };
-        openCreateDialog((start.x + x) / 2, (start.y + y) / 2, { shape: "rect", bounds });
-      }
-      return;
-    }
+    if (tool === "circle" || tool === "rect") return; // 拖拽绘制由 pointerdown/move/up 处理
 
     // 室内模式：楼内点击直接进入创作（跳过建筑命中——命中的只会是自己这栋楼），
     // 楼外点击拦截并提示
@@ -252,7 +278,7 @@ export function CampusCanvas() {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
+      onPointerLeave={onPointerLeave}
       onWheel={onWheel}
       onClick={handleClick}
     >

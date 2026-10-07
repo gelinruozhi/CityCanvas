@@ -154,8 +154,8 @@ export function FabControls() {
           ·{" "}
           {drawing
             ? drawTool === "circle"
-              ? "点击定圆心，再次点击完成圆 · Esc 取消"
-              : "点击矩形一角，再次点击对角完成 · Esc 取消"
+              ? "按住拖拽画圆，松开完成 · Esc 取消"
+              : "按住拖拽画框，松开完成 · Esc 取消"
             : selectedBuilding
             ? `已选中 ${selectedBuilding.name}${indoorFloor ? ` · ${indoorFloor}` : ""}`
             : "点击地图任意位置 · 按 ? 看快捷键"}
