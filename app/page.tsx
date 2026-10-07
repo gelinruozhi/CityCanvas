@@ -931,7 +931,7 @@ function Footer() {
           <MapPin className="h-4 w-4 text-orange-400" />
           <span className="font-semibold text-white">CityCanvas</span>
           <span>·</span>
-          <span>2026 泉客松</span>
+          <span>校园改造画布</span>
         </div>
         <div className="flex items-center gap-6">
           <Link href="/create" className="transition hover:text-white">创作</Link>

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   },
   description:
     "AI 驱动的校园 DIY 创意创作平台。在山东财经大学卡通校园画布上标注你的改造想法，让 AI 评估舒适度与便捷度，发布到社区共创。",
-  keywords: ["CityCanvas", "山东财经大学", "校园创意", "AI 评估", "城市规划", "校园画布", "泉客松"],
+  keywords: ["CityCanvas", "山东财经大学", "校园创意", "AI 评估", "城市规划", "校园画布"],
   authors: [{ name: "CityCanvas Team" }],
   openGraph: {
     title: "CityCanvas - 在山财绘制你的理想校园",

@@ -107,7 +107,7 @@ export default async function OG() {
               border: "1px solid rgba(255,255,255,0.1)",
             }}
           >
-            ✨ 泉客松 2026
+            ✨ 山东财经大学圣井校区
           </div>
           <span>·</span>
           <span>citycanvas.app</span>
